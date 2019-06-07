@@ -1,5 +1,5 @@
 # Windows-Trix
-An assortment of techniques that can be used to exploit Windows.  You will need to change IP addresses and other references in the examples to fit your environment.
+An assortment of techniques that can be used to exploit Windows.  Most of these assume that you have or can attain administrator or system privileges on the endpoint.  You will need to change IP addresses and other references in the examples to fit your environment.
 
 ## Copying data from the clipboard using powershell
 
@@ -26,4 +26,10 @@ else
    }
 }
 ```
-<br />
+
+## Create a wireless hotspot and forward through the ethernet adapter
+
+<span style="color:blue">Check to see if a wireless adapter is present that supports host mode</span><br />
+`netsh wlan show drivers | findstr /I /R /C:"Hosted network supported[ ]*:[ ]*Yes"`
+
+
