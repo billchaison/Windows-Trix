@@ -26,10 +26,3 @@ else
    }
 }
 ```
-
-## Create a wireless hotspot and forward through the ethernet adapter
-
-<span style="color:blue">Check to see if a wireless adapter is present that supports host mode</span><br />
-`netsh wlan show drivers | findstr /I /R /C:"Hosted network supported[ ]*:[ ]*Yes"`
-
-
