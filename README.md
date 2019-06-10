@@ -221,3 +221,27 @@ else
    Exit
 }
 ```
+
+## Retrieving wireless profile passwords using powershell
+
+```powershell
+$wp = @()
+(((netsh wlan show profiles) | out-string ).split("`r`n")).ForEach({
+   if($_ -Like '*All user profile*')
+   {
+      $t = $_.Split(":")
+      $wp += $t[1].trim()
+   }
+})
+Write-Host "SSID -> PSK"
+Write-Host "-----------------------------------------"
+$wp.foreach({
+   $id = $_
+   (((netsh wlan show profile "$id" key=clear) | Out-String).Split("`r`n")).ForEach({
+   if($_ -Like '*Key content*')
+   {
+      $pw = ($_.Split(":"))[1].trim()
+      Write-Host "$id -> $pw"
+   }
+})})
+```
