@@ -32,6 +32,7 @@ else
 **Activation script** `wifi-start.ps1`<br />
 ```powershell
 regsvr32 /s hnetcfg.dll
+sc start SharedAccess | Out-Null
 
 $ssid = "BACKDOOR"
 $wpsk = "1234567890"
@@ -42,7 +43,7 @@ if(!$hsup)
    Write-Host "Wireless host mode not supported."
    Exit
 }
-$huse = netsh wlan show interfaces | Select-String "Hosted network status" | Select-String "Started"
+$huse = netsh wlan show interfaces | Select-String "Hosted network status" | Select-String ": Started"
 if($huse)
 {
    Write-Host "Wireless host mode already in use."
@@ -157,6 +158,21 @@ else
    Remove-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Services\WlanSvc\Parameters\HostedNetworkSettings" -Name "HostedNetworkSettings"
    Exit
 }
+```
+
+If you get error `Exception from HRESULT: 0x80040201` from the `EnableSharing` method then run the following VB script to delete all interface ICS configurations and try the `wifi-start.ps1` script again.<br />
+```
+set WMI = GetObject("WinMgmts:\root\Microsoft\HomeNet")
+set objs1 = WMI.ExecQuery("SELECT * FROM HNet_ConnectionProperties WHERE IsIcsPrivate = TRUE")
+for each obj in objs1
+   obj.IsIcsPrivate = FALSE
+   obj.Put_
+next
+set objs2 = WMI.ExecQuery("SELECT * FROM HNet_ConnectionProperties WHERE IsIcsPublic = TRUE")
+for each obj in objs2
+   obj.IsIcsPublic = FALSE
+   obj.Put_
+next
 ```
 
 **Deactivation script** `wifi-stop.ps1`<br />
