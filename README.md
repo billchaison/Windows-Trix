@@ -409,3 +409,53 @@ else
    Write-Host "There were no PuTTY sessions to configure."
 }
 ```
+
+**Listing PuTTY log paths**<br />
+```powershell
+$user = Get-WMIObject -class Win32_ComputerSystem | select -ExpandProperty username
+if(!$user)
+{
+   Write-Host "Currently logged on user not identified."
+   Exit
+}
+Write-Host "Currently logged on user = $user"
+$sidu = (New-Object System.Security.Principal.NTAccount($user)).Translate([System.Security.Principal.SecurityIdentifier]).value
+if(!$sidu)
+{
+   Write-Host "User SID not identified."
+   Exit
+}
+$putty = Test-Path -Path "REGISTRY::HKEY_USERS\$sidu\Software\SimonTatham\PuTTY\Sessions"
+if($putty -eq $False)
+{
+   Write-Host "No PuTTY sessions identified."
+   Exit
+}
+$sess = Get-ChildItem "REGISTRY::HKEY_USERS\$sidu\Software\SimonTatham\PuTTY\Sessions"
+if(!$sess)
+{
+   Write-Host "No PuTTY sessions identified."
+   Exit
+}
+$skey = $sess | Foreach-Object {Get-ItemProperty $_.PsPath}
+$snum = 0
+Foreach($item in $skey)
+{
+   $rkey = Convert-Path $item.PsPath
+   $rkey = "REGISTRY::$rkey"
+   $ppath = Get-ItemProperty -Path "$rkey" -Name "LogFileName"
+   if($ppath)
+   {
+      $ppath.LogFileName
+   }
+   $snum++
+}
+if($snum -gt 0)
+{
+   Write-Host "$snum PuTTY session(s) have a log path."
+}
+else
+{
+   Write-Host "No PuTTY logging identified."
+}
+```
