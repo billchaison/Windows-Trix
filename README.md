@@ -55,7 +55,7 @@ if(!$wuse)
    Write-Host "Wireless interface already in use."
    Exit
 }
-$ename = Get-NetAdapter | Where-Object {$_.PhysicalMediaType -eq '802.3' -and $_.MediaConnectionState -eq  'Connected'} | Select-Object -Property Name
+$ename = Get-NetAdapter | Where-Object {$_.PhysicalMediaType -eq '802.3' -and $_.MediaConnectionState -eq 'Connected'} | Select-Object -Property Name
 if($ename.Name -eq $null)
 {
    Write-Host "Connected ethernet interface name not identified."
