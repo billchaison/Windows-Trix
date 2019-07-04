@@ -200,7 +200,7 @@ if($eipa.IPAddress -eq $null)
    Write-Host "Ethernet interface IP Address not identified."
    Exit
 }
-$wname = Get-NetAdapter | Where-Object {($_.PhysicalMediaType -eq 'Native 802.11' -or $_.PhysicalMediaType -eq 'Wireless LAN') -and $_.Status -eq 'Up' -and $_.AdminStatus -eq 'Up' -and $_.ifDesc -eq 'Microsoft Hosted Network Virtual Adapter'} | Select-Object -Property Name
+$wname = Get-NetAdapter | Where-Object {($_.PhysicalMediaType -eq 'Native 802.11' -or $_.PhysicalMediaType -eq 'Wireless LAN') -and $_.Status -eq 'Up' -and $_.AdminStatus -eq 'Up' -and $_.ifDesc -like 'Microsoft Hosted Network Virtual Adapter*'} | Select-Object -Property Name
 if($wname.Name -eq $null)
 {
    Write-Host "Wireless host mode interface name could not be identified."
