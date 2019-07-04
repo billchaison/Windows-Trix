@@ -1,5 +1,5 @@
 # Windows-Trix
-An assortment of techniques that can be used to exploit Windows.  These methods apply to edge cases; they are not the common exploits that you often use.  Most of these assume that you have or can attain administrator or system privileges on the endpoint.  You will need to change IP addresses and other references in the examples to fit your environment.
+An assortment of techniques that can be used to exploit Windows.  These are uncommon exploits that are not often used.  Most of these assume that you have or can attain administrator or system privileges on the endpoint.  You will need to change IP addresses and other references in the examples to fit your environment.
 
 ## >> Copying data from the clipboard using powershell
 
