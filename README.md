@@ -522,5 +522,57 @@ Download Microsoft Network Monitor 3.4 from [HERE](https://www.microsoft.com/en-
 Open `tracefile.etl` with Network Monitor 3.4 and save as `tracefile.cap`.<br />
 Open `tracefile.cap` using wireshark.
 
+## >> Performing SNMP from powershell
 
+The Windows ISNMP Automation Interface can be used to perform GET and SET operations.  Cisco 3750 OID used in this example.
 
+```powershell
+# Get the system description
+$objSNMP = New-Object -ComObject olePrn.OleSNMP
+$sCommunity = 'C15c0-rw'
+$sDevice = '10.192.96.139'
+$sVersion = '2'
+$sMSWait = '1000'
+$objSNMP.Open($sDevice, $sCommunity, $sVersion, $sMSWait)
+$objSNMP.Get('.1.3.6.1.2.1.1.1.0')
+```<br />
+```powershell
+# Get an interface description (Ge2/0/24)
+$objSNMP = New-Object -ComObject olePrn.OleSNMP
+$sCommunity = 'C15c0-rw'
+$sDevice = '10.192.96.139'
+$sVersion = '2'
+$sMSWait = '1000'
+$objSNMP.Open($sDevice, $sCommunity, $sVersion, $sMSWait)
+$objSNMP.Get('.1.3.6.1.2.1.2.2.1.2.10624')
+```<br />
+```powershell
+# Get an interface VLAN assignment (Ge2/0/24)
+$objSNMP = New-Object -ComObject olePrn.OleSNMP
+$sCommunity = 'C15c0-rw'
+$sDevice = '10.192.96.139'
+$sVersion = '2'
+$sMSWait = '1000'
+$objSNMP.Open($sDevice, $sCommunity, $sVersion, $sMSWait)
+$objSNMP.Get('.1.3.6.1.4.1.9.9.68.1.2.2.1.2.10624')
+```<br />
+```powershell
+# Get an interface link status (Ge2/0/24, 1 = up, 2 = down)
+$objSNMP = New-Object -ComObject olePrn.OleSNMP
+$sCommunity = 'C15c0-rw'
+$sDevice = '10.192.96.139'
+$sVersion = '2'
+$sMSWait = '1000'
+$objSNMP.Open($sDevice, $sCommunity, $sVersion, $sMSWait)
+$objSNMP.Get('.1.3.6.1.2.1.2.2.1.8.10624')
+```<br />
+```powershell
+# Change an interface VLAN assignment (Ge2/0/24, to VLAN 315)
+$objSNMP = New-Object -ComObject olePrn.OleSNMP
+$sCommunity = 'C15c0-rw'
+$sDevice = '10.192.96.139'
+$sVersion = '2'
+$sMSWait = '1000'
+$objSNMP.Open($sDevice, $sCommunity, $sVersion, $sMSWait)
+$objSNMP.Set('.1.3.6.1.4.1.9.9.68.1.2.2.1.2.10624', 315)
+```
