@@ -535,6 +535,7 @@ $sVersion = '2'
 $sMSWait = '1000'
 $objSNMP.Open($sDevice, $sCommunity, $sVersion, $sMSWait)
 $objSNMP.Get('.1.3.6.1.2.1.1.1.0')
+$objSNMP.Close()
 ```
 
 ```powershell
@@ -546,6 +547,7 @@ $sVersion = '2'
 $sMSWait = '1000'
 $objSNMP.Open($sDevice, $sCommunity, $sVersion, $sMSWait)
 $objSNMP.Get('.1.3.6.1.2.1.2.2.1.2.10624')
+$objSNMP.Close()
 ```
 
 ```powershell
@@ -557,6 +559,7 @@ $sVersion = '2'
 $sMSWait = '1000'
 $objSNMP.Open($sDevice, $sCommunity, $sVersion, $sMSWait)
 $objSNMP.Get('.1.3.6.1.4.1.9.9.68.1.2.2.1.2.10624')
+$objSNMP.Close()
 ```
 
 ```powershell
@@ -568,6 +571,7 @@ $sVersion = '2'
 $sMSWait = '1000'
 $objSNMP.Open($sDevice, $sCommunity, $sVersion, $sMSWait)
 $objSNMP.Get('.1.3.6.1.2.1.2.2.1.8.10624')
+$objSNMP.Close()
 ```
 
 ```powershell
@@ -579,4 +583,5 @@ $sVersion = '2'
 $sMSWait = '1000'
 $objSNMP.Open($sDevice, $sCommunity, $sVersion, $sMSWait)
 $objSNMP.Set('.1.3.6.1.4.1.9.9.68.1.2.2.1.2.10624', 315)
+$objSNMP.Close()
 ```
