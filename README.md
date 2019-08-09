@@ -585,3 +585,11 @@ $objSNMP.Open($sDevice, $sCommunity, $sVersion, $sMSWait)
 $objSNMP.Set('.1.3.6.1.4.1.9.9.68.1.2.2.1.2.10624', 315)
 $objSNMP.Close()
 ```
+
+## >> Circumventing cmd.exe policy restrictions
+
+Windows group policy can be configured to disable execution of the command prompt by setting a configuration option under Computer Policy >> User Configuration >> Administrative Templates >> System.  This results in the following message when attempting to launch the command prompt.
+
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/cmd02.png)
+
+
