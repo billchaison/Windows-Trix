@@ -592,7 +592,7 @@ Windows group policy can be configured to disable execution of the command promp
 
 ![alt text](https://github.com/billchaison/Windows-Trix/blob/master/cmd02.png)
 
-The cmd.exe program tests the following registry value to determine if this policy is set:<br />
+The cmd.exe program tests for the following registry value to determine if this policy is set:<br />
 `HKCU\Software\Policies\Microsoft\Windows\System\DisableCMD`
 
 The unicode string for the registry value exists in the cmd.exe binary.  You can make a copy of cmd.exe and edit this string to defeat policy checking.  Here is an example of generating the hex characters to search for.
