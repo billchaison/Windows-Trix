@@ -630,7 +630,7 @@ You now have a command shell.<br />
 
 ## >> Node.js bind and reverse shell using node.exe
 
-The Node.js JavaScript runtime is occasionally found on a Windows system either as a standalone installation or bundled in with some other application (e.g. Adobe Creative Cloud).  You can also extract the node.exe binary from the <a href="https://nodejs.org/en/download/" target="_blank">ZIP package</a> and copy it to a victim computer.
+The Node.js JavaScript runtime is occasionally found on a Windows system either as a standalone installation or bundled in with some other application (e.g. Adobe Creative Cloud).  You can also extract the node.exe binary from the [ZIP package](https://nodejs.org/en/download/ "Node.js Download") and copy it to a victim computer.
 
 Example of a bind shell (socket server)<br />
 ```javascript
