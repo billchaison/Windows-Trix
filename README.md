@@ -731,3 +731,13 @@ client.on('data', function(directive)
 });
 ```
 
+## >> TCP port forwarding with netsh
+
+Forward TCP port 2222 to port 22 on remote host.
+
+`netsh interface portproxy add v4tov4 listenport=2222 listenaddress=0.0.0.0 connectport=22 connectaddress=10.192.103.49`
+
+Remove port forwarding rule.
+
+`netsh interface portproxy delete v4tov4 listenport=2222 listenaddress=0.0.0.0`
+
