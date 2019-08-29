@@ -741,3 +741,23 @@ Remove port forwarding rule.
 
 `netsh interface portproxy delete v4tov4 listenport=2222 listenaddress=0.0.0.0`
 
+## >> Downloading files with Javascript
+
+First, as administrator, register the System .NET assembly.
+
+`C:\Windows\Microsoft.NET\Framework64\v4.0.30319\RegAsm.exe System.dll`
+
+As ordinary user, perform the following steps.  Create a javascript file, dl.js.
+
+```javascript
+var strURL = "http://download.domain.com/file.bin";
+var strFilePath = "C:\\folder\\file.bin";
+var oWebClient = new ActiveXObject("System.Net.WebClient");
+oWebClient.DownloadFile(strURL, strFilePath);
+```
+
+Compile dl.js into an exe.
+
+`C:\Windows\Microsoft.NET\Framework64\v4.0.30319\jsc.exe dl.js`
+
+Now execute `dl.exe` to retrieve the file.
