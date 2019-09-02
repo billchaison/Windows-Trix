@@ -768,6 +768,101 @@ Remove port forwarding rule.
 
 `netsh interface portproxy delete v4tov4 listenport=2222 listenaddress=0.0.0.0`
 
+## >> TCP port forwarding with powershell
+
+```powershell
+# Target parameters
+$tcpRHost = "192.168.1.19"
+$tcpRPort = "22"
+
+# Bind parameters
+$tcpLAddr = "0.0.0.0"
+$tcpLPort = "2222"
+
+try {
+   $TcpServer = New-Object System.Net.Sockets.TcpListener([system.net.IPAddress]::Parse($tcpLAddr), $tcpLPort)
+}
+catch {
+   Write-Output "Failed to listen on $tcpLAddr port $tcpLPort"
+   exit
+}
+
+try {
+   $TcpServer.Start()
+}
+catch {
+   Write-Output "Failed to start server on $tcpLAddr port $tcpLPort"
+   $tcpServer.Stop()
+   exit
+}
+
+$tcpConnection = $tcpServer.AcceptTcpClient()
+$RemoteIP = $tcpConnection.Client.RemoteEndPoint.Address.IPAddressToString
+Write-Output "Received connection from $RemoteIP"
+if($tcpConnection -ne $null)
+{
+   $tcpServer.Stop()
+   try {
+      $tcpClient = New-Object System.Net.Sockets.TcpClient($tcpRHost, $tcpRPort)
+   }
+   catch {
+      Write-Output "Failed to connect to $tcpRHost port $tcpRPort"
+      exit
+   }
+}
+else
+{
+   Write-Output "Accept error"
+   $tcpServer.Stop()
+   exit
+}
+
+$LStream = $tcpConnection.GetStream()
+$RStream = $tcpClient.GetStream()
+
+$LBuffer = New-Object Byte[] $tcpConnection.ReceiveBufferSize
+$RBuffer = New-Object Byte[] $tcpClient.ReceiveBufferSize
+
+$idle = 0
+
+while($true) {
+   if($tcpConnection.Connected -and $tcpClient.Connected)
+   {
+      if(($tcpConnection.Client.Available -gt 0) -or ($tcpClient.Client.Available -gt 0))
+      {
+         if($tcpConnection.Client.Available -gt 0)
+         {
+            $LRead = $LStream.Read($LBuffer, 0, $LBuffer.Length)
+            $RStream.Write($LBuffer, 0, $LRead)
+            $idle = 0
+         }
+         if($tcpClient.Client.Available -gt 0)
+         {
+            $RRead = $RStream.Read($RBuffer, 0, $RBuffer.Length)
+            $LStream.Write($RBuffer, 0, $RRead)
+            $idle = 0
+         }
+      }
+      else
+      {
+         Start-Sleep -Milliseconds 10
+         $idle++
+         if($idle -gt 3000)
+         {
+            # approx 30 sec idle close
+            $tcpConnection.Close()
+            $tcpClient.Close()
+         }
+      }
+   }
+   else
+   {
+      Write-Output "Connection closed"
+      exit
+   }
+}
+```
+
 ## >> Downloading files with compiled Javascript
 
 First, as administrator, register the System .NET assembly.
