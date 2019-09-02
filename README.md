@@ -506,6 +506,33 @@ Response `0x80190194` the port responded to HTTP but `doesnotexist.file` is not 
 Response `0x80072efd` the port did not respond.<br />
 Response does not contain an error code, then the file was retrieved successfully.
 
+## >> TCP port scanning using powershell
+
+```powershell
+$TcpPorts = 21,22,23,80,81,110,111,135,139,143,389,443,445,513,514,515,636,993,995,1080,1433,3128,3306,3389,4786,5800,5900,8080,8081,8088,8443,8888,10000
+$IpAddress = "192.168.1.19"
+$MsTimeout = 100
+
+foreach($Port in $TcpPorts)
+{
+   $Socket = New-Object Net.Sockets.TcpClient
+   $Socket.SendTimeout = 100
+   $ErrorActionPreference = 'SilentlyContinue'
+   $AsyncResult = $Socket.BeginConnect($IpAddress, $Port, $null, $null)
+   Start-Sleep -milli $MsTimeout
+   if($Socket.Connected)
+   {
+      Write-Output "$IpAddress port $Port is open"
+   }
+   else
+   {
+       # handle closed status here
+   }
+   $Socket.Close()
+   $Socket = $null
+}
+```
+
 ## >> Using netsh to capture network packets
 
 This technique is useful for capturing insecure protocol traffic on a host (e.g. telnet, FTP, HTTP, SNMP).<br />
