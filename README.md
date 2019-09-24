@@ -1166,5 +1166,6 @@ exit;
 Start openssl server on Linux (10.192.103.49).<br />
 Generate a certificate and key first.<br />
 `openssl req -x509 -newkey rsa:2048 -keyout svrkey.pem -out svrcert.pem -days 365 -nodes`
+
 `openssl s_server -quiet -tls1_2 -cipher HIGH -key svrkey.pem -cert svrcert.pem -accept 443 -naccept 1 < <(cat file.bin | base64)`
 
