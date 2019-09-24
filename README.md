@@ -1100,7 +1100,7 @@ $socket.close();
 
 ## >> Downloading a file via powershell
 
-Retrieve the file from Windows host using powershell.  Will retry until server responds.<br />
+Retrieve the file on Windows host using powershell.  Will retry until server responds.<br />
 ```powershell
 $fdata = "";
 $fname = $env:temp + "\file.bin"
