@@ -1125,4 +1125,4 @@ exit;
 ```
 
 Start netcat listener on Linux (192.168.1.242) to serve the file.<br />
-`cat file.bin | base64 | nc -nlvp 4444`
+`cat file.bin | base64 | timeout 10 nc -nlvp 4444`
