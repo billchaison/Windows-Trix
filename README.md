@@ -508,6 +508,7 @@ Response does not contain an error code, then the file was retrieved successfull
 
 ## >> TCP port scanning using powershell
 
+**Port sweep single host**<br />
 ```powershell
 $TcpPorts = 21,22,23,25,80,81,110,111,135,139,143,389,443,445,465,513,514,515,587,636,993,995,1080,1433,3128,3306,3389,4786,5800,5900,8080,8081,8088,8443,8888,10000
 $IpAddress = "192.168.1.19"
@@ -523,6 +524,33 @@ foreach($Port in $TcpPorts)
    if($Socket.Connected)
    {
       Write-Output "$IpAddress port $Port is open"
+   }
+   else
+   {
+       # handle closed status here
+   }
+   $Socket.Close()
+   $Socket = $null
+}
+```
+
+**Host sweep single port**<br />
+```powershell
+$TcpPort = 445
+$IpNet = "10.100.120"
+$MsTimeout = 100
+
+for($IpHost = 1; $IpHost -lt 256; $IpHost++)
+{
+   $IpAddress = "$IpNet.$IpHost"
+   $Socket = New-Object Net.Sockets.TcpClient
+   $Socket.SendTimeout = 100
+   $ErrorActionPreference = 'SilentlyContinue'
+   $AsyncResult = $Socket.BeginConnect($IpAddress, $TcpPort, $null, $null)
+   Start-Sleep -milli $MsTimeout
+   if($Socket.Connected)
+   {
+      Write-Output "$IpAddress port $TcpPort is open"
    }
    else
    {
