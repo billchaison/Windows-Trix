@@ -1396,7 +1396,7 @@ dc02.my.lab    internet address = 10.1.2.11
 `netsh trace start scenario=NetConnection capture=yes persistent=no maxsize=512 filemode=circular overwrite=yes report=no correlation=no traceFile=c:\temp\capture.etl IPv4.Address=(10.1.2.10,10.1.2.11) Ethernet.Type=IPv4`<br />
 wait for the command prompt to return.
 
-**Get a kerberos TGS using the SPN***
+**Get a kerberos TGS using the SPN**
 
 `klist get http/automation.my.lab`
 
