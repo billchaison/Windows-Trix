@@ -1423,4 +1423,4 @@ $krb5tgs$23$ = RC4     = hashcat mode 13100
 $krb5tgs$17$ = AES-128 = hashcat mode 19600
 $krb5tgs$18$ = AES-256 = hashcat mode 19700
 ```
-(7) Feed the contents of "tgs.txt" into hashcat to attempt to crack the sevice account's plaintext password.
+(7) Feed the contents of "tgs.txt" into hashcat to attempt to crack the service account's plaintext password.
