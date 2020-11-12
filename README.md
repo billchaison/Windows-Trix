@@ -1424,3 +1424,24 @@ $krb5tgs$17$ = AES-128 = hashcat mode 19600
 $krb5tgs$18$ = AES-256 = hashcat mode 19700
 ```
 (7) Feed the contents of "tgs.txt" into hashcat to attempt to crack the service account's plaintext password.
+
+## >> NetBIOS Name Service Recon Without Windows Utilities
+
+Attacking machine is Linux that has netcat or bash UDP device support.  Windows host 192.168.1.166 is being queried in this example.
+
+**Using nc**
+
+`echo -n 12340000000100000000000020434b4141414141414141414141414141414141414141414141414141414141410000210001 | xxd -r -p | nc -u -w 1 192.168.1.166 137 | strings`
+
+Same technique using a random transaction ID:
+
+`(echo -n $(openssl rand -hex 2); echo -n 0000000100000000000020434b4141414141414141414141414141414141414141414141414141414141410000210001) | xxd -r -p | nc -u -w 1 192.168.1.166 137 | strings`
+
+**Using bash UDP device**
+
+`exec 5<>/dev/udp/192.168.1.166/137; echo -n 12340000000100000000000020434b4141414141414141414141414141414141414141414141414141414141410000210001 | xxd -r -p >&5; timeout 1 strings <&5`
+
+Same technique using a random transaction ID:
+
+`exec 5<>/dev/udp/192.168.1.166/137; (echo -n $(openssl rand -hex 2); echo -n 0000000100000000000020434b4141414141414141414141414141414141414141414141414141414141410000210001) | xxd -r -p >&5; timeout 1 strings <&5`
+
