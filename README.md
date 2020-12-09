@@ -1485,7 +1485,7 @@ tcpdump -nn -vv -i eth0 -s 0 -w ntlm.cap port 445 or port 139
 
 Lure the victim to access your file `\\smb.my.lab\files\test.txt`
 
-Type <ctrl>-c to stop tcpdump and stop the Samba service when you have collected enough packets.  Then open the ntlm.cap file in NetworkMiner.  Go to the "credentials" tab and right-click then copy password for the account whose NTLM hash you obtained.  Note the user name, e.g. user01, associated in the other packet.
+Type `<ctrl>-c` to stop tcpdump and stop the Samba service when you have collected enough packets.  Then open the ntlm.cap file in NetworkMiner.  Go to the "credentials" tab and right-click then copy password for the account whose NTLM hash you obtained.  Note the user name, e.g. user01, associated in the other packet.
 
 Convert the NTLM hash that looks like this:<br />
 `$NETNTLMv2$MYLAB$<hex>$<hex>$<hex>`
