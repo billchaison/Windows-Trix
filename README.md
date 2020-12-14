@@ -1499,7 +1499,7 @@ Crack the converted hash string using hashcat mode 5600 to attempt to recover th
 
 ## >> Modifying Responder.py to evade AV detection
 
-If Windows AV (e.g. Symantec Endpoint Protection - SEP) is interfering with HTTP NTLM credential grabbing attacks using `Responder.py`, try this.
+If Windows AV (e.g. Symantec Endpoint Protection - SEP) is interfering with HTTP NTLM credential grabbing attacks using `Responder.py`, try this.  Tested with Responder version 3.0.2.0.
 
 **Clone and edit Responder**
 
@@ -1533,5 +1533,5 @@ rm logs/*
 Launch Responder.<br />
 `python2 ./Responder.py -I wlan0`
 
-Lure the victim to request the URL.<br />
+Lure the victim to request the URL, where www.my.lab is the attacking host running Responder.<br />
 (e.g.) `http://www.my.lab/images/image.png`
