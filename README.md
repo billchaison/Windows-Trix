@@ -1362,6 +1362,14 @@ Search for credentials in winscp.dmp on the attacking host.<br />
 Example output:<br />
 `user192.168.20.33Lam3Password!`
 
+## >> Dumping Palo Alto GlobalProtect passwords from memory
+
+Once a user is connected to the VPN, the PanGPA.exe process does not encrypt the user's password in memory.  It can be retrieved from a DMP file created through task manager (or another technique).
+
+Right-click on the PanGPA.exe process from task manager and create a dump file. Copy the dump file to Linux and hunt for the password.
+
+`strings -e l PanGPA.DMP | grep -i 'domain\\user' -B 4 -A 4 | more`
+
 ## >> Targeted Kerberoasting using LOLbin programs
 
 Assumes you have (compromised) a Windows computer that can access the domain with user privileges and have local administrator privileges to run `netsh`.
