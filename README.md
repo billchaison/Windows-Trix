@@ -1549,7 +1549,7 @@ binwalk <dump file>
 The following program `jamd.cs` can be compiled with Windows CSharp compiler (csc.exe) like so.<br />
 `c:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe -out:C:\temp\jamd.exe C:\temp\jamd.cs`
 
-THe program can be executed like this `C:\temp\jamd.exe 1234 c:\temp\proc.dmp`
+The program can be executed like this `C:\temp\jamd.exe 1234 c:\temp\proc.dmp`
 
 ```csharp
 // Just Another Memory Dumper
