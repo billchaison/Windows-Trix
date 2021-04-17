@@ -1538,7 +1538,7 @@ Lure the victim to request the URL, where www.my.lab is the attacking host runni
 
 ## >> Memory Dumping with C#
 
-Many are familiar with dumping lsass to get Windows credentials.  However, user mode processes are a credential goldmine as well (mail clients, VPN clients, file transfer clients, terminal emulators, etc).  If the application doesn't employ defensive programming, such as encrypting or clearing stack and heap variables, chances are good that you can detect user names, passwords, private keys, tokens, and so on.  Once you have a Windows process dump file you can use several Linux tools to inspect the data:
+Many are familiar with dumping lsass to get Windows credentials.  However, user mode processes are a credential goldmine as well (mail clients, VPN clients, file transfer clients, terminal emulators, password managers, etc).  If the application doesn't employ defensive programming, such as encrypting or clearing stack and heap variables, chances are good that you can detect user names, passwords, private keys, tokens, and so on.  Once you have a Windows process dump file you can use several Linux tools to inspect the data:
 
 ```
 strings <dump file>
