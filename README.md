@@ -1543,7 +1543,7 @@ Many are familiar with dumping lsass to get Windows credentials.  However, user 
 ```
 strings <dump file>
 strings -e l <dumpfile>
-binwalk <fump file>
+binwalk <dump file>
 ```
 
 The following program `jamd.cs` can be compiled with Windows CSharp compiler (csc.exe) like so.<br />
