@@ -1727,4 +1727,4 @@ The window used to see the command output should resemble this.
 
 ![alt text](https://github.com/billchaison/Windows-Trix/blob/master/winrm02.png)
 
-When you are finished using the Powershell remote sessions, you can exit in each window by using `Exit-PSSession;`.
+When you are finished using the Powershell remote sessions, you can exit each window by using `Exit-PSSession;`.
