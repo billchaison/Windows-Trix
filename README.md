@@ -1625,3 +1625,104 @@ namespace Jamd
 }
 ```
 
+## >> Interactive Command Prompt with WinRM
+
+An interactive instance of cmd.exe is not directly supported under a remote Powershell session.  You can use named pipes to redirect stdin, stdout and sterr to interact with the command interpreter through multiple WinRM consoles.  Three consoles are used in this example.
+
+* First PsSession will be used to capture the input of cmd.exe
+* Second PsSession will be used to capture the output of cmd.exe
+* Third PsSession will be used to launch cmd.exe with redirection to your named pipes
+
+**Launch three instances of Powershell**
+
+On the client computer you will need to connect to the remote computer using the following command.  Assumes the remote computer has address 192.168.1.243, has a hostname of WIN10PRO, and you are the administrator.
+
+`Enter-PSSession -ComputerName 192.168.1.243 -Credential WIN10PRO\administrator`
+
+Each of the 3 Powershell sessions should resemble this.
+
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/winrm00.png)
+
+In the first session paste the following code that will receive your input to the command interpreter.
+
+```powershell
+$host.UI.RawUI.WindowTitle = "Input Window"
+$pipesec = New-Object System.IO.Pipes.PipeSecurity;
+$pipeacl = New-Object System.IO.Pipes.PipeAccessRule("Everyone", "ReadWrite", "Allow");
+$pipesec.AddAccessRule($pipeacl);
+$pipe = new-object System.IO.Pipes.NamedPipeServerStream("cmdpipein", "Out", 2, "Byte", "None", 1024, 1024, $pipesec);
+$pipe.WaitForConnection();
+$sw = new-object System.IO.StreamWriter($pipe);
+$sw.AutoFlush = $true;
+while($true)
+{
+   $c = Read-Host;
+   if($c -eq "killme")
+   {
+      $sw.WriteLine("echo killme");
+      Start-Sleep -s 2
+      $sw.WriteLine("exit");
+      Start-Sleep -s 2
+      $sw.Dispose();
+      $pipe.Dispose();
+      break;
+   }
+   else
+   {
+      $sw.WriteLine($c);
+   }
+}
+```
+
+In the second session paste the following code that will display the output from the command interpreter.
+
+```powershell
+$host.UI.RawUI.WindowTitle = "Output Window"
+$pipesec = New-Object System.IO.Pipes.PipeSecurity;
+$pipeacl = New-Object System.IO.Pipes.PipeAccessRule("Everyone", "ReadWrite", "Allow");
+$pipesec.AddAccessRule($pipeacl);
+$s = $true;
+while($s)
+{
+   $pipe = new-object System.IO.Pipes.NamedPipeServerStream("cmdpipeout", "In", 2, "Byte", "None", 1024, 1024, $pipesec);
+   $pipe.WaitForConnection();
+   $sr = new-object System.IO.StreamReader($pipe);
+   while(($data = $sr.ReadLine()) -ne $null)
+   {
+      if($data -eq "killme")
+      {
+         $sr.Dispose();
+         $pipe.Dispose();
+         Write-Host "Killing session";
+         $s = $false;
+         break;
+      }
+      else
+      {
+         Write-Host $data;
+      }
+   }
+   $pipe.Dispose();
+}
+```
+
+In the third session paste the following code.  This launches the instance of cmd.exe with redirection to the named pipes you created in the first two sessions.  Since you will not be interacting with this session it can be ignored after the command is executed.
+
+```powershell
+$host.UI.RawUI.WindowTitle = "Command Start - Noninteractive"
+& cmd.exe /c "cmd.exe <\\.\pipe\cmdpipein >\\.\pipe\cmdpipeout 2>&1"
+```
+
+**Example of Using the Consoles**
+
+The noninteractive window used to launch cmd.exe should resemble this.
+
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/winrm03.png)
+
+The window used to enter commands should resemble this.  Enter the keyword "killme" to exit the scripts and destroy the named pipes.
+
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/winrm01.png)
+
+The window used to see the command output should resemble this.
+
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/winrm02.png)
