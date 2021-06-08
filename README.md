@@ -1530,7 +1530,6 @@ do
               dump=$(cat "$tf2" | grep "OCTET STRING" | tr -d " " | cut -d ":" -f 4)
               cksm=${dump: -24}
               data=${dump%????????????????????????}
-              #echo -e "$dump\n$cksm\n$data\n$etype"
               echo -n '$krb5tgs$'
               echo -n $etype
               echo -n '$'
