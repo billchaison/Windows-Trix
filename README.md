@@ -1515,7 +1515,6 @@ do
       echo $line | base64 -d > "$tf1"
       openssl asn1parse -in $tf1 -inform der | grep "OCTET STRING\|INTEGER" | grep -m 1 -B 2 "OCTET STRING" > "$tf2"
       etype="unknown"
-      #egrep "INTEGER +:(11|12)" "$tf2" >/dev/null
       egrep "INTEGER +:11" "$tf2" >/dev/null
       if [ $? -eq 0 ]
       then
