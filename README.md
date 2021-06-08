@@ -1489,7 +1489,7 @@ Write-host $j "entries written to $OutFile"
 
 **Build Hashcat formatted TGS replies for cracking**
 
-Copy the file `$OutFile` to your Linux Hashcat host.  Create the following Bash script `tgsrep.sh`.  This script will be used to filter out AES 128 and 256 encrypted TGS replies.  An example of outputting AES 128 (type 17) TGS replies can be done like this.<br />
+Copy the file `$OutFile` to your Linux Hashcat host.  Create the following Bash script `tgsrep.sh`.  This script will be used to select just AES 128 or 256 encrypted TGS replies.  An example of outputting AES 128 (type 17) TGS replies can be done like this.<br />
 `tgsrep.sh spnout.txt 17 > crackme.txt`<br />
 An example of outputting AES 256 (type 18) TGS replies can be done like this.<br />
 `tgsrep.sh spnout.txt 18 > crackme.txt`<br />
