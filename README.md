@@ -1552,7 +1552,7 @@ done < "$1"
 
 **Run the hashes through Hashcat**
 
-For type 17 AES 128 tickets, use Hascat mode 19600.  For type 18 AES 256 tickets use Hashcat mode 19700.
+For type 17 AES 128 tickets, use Hashcat mode 19600.  For type 18 AES 256 tickets use Hashcat mode 19700.
 
 ## >> NetBIOS Name Service Recon Without Windows Utilities
 
