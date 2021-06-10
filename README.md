@@ -1492,7 +1492,7 @@ Write-host $j "entries written to $OutFile"
 Copy the file `$OutFile` to your Linux Hashcat host.  Create the following Bash script `tgsrep.sh`.  This script will allow you to select RC4, AES-128 or AES-256 encrypted TGS replies.  For example:<br />
 Output AES-128 (type 17) TGS replies.<br />
 `tgsrep.sh spnout.txt 17 > crackme.txt`<br />
-Output AES-256 (type 17) TGS replies.<br />
+Output AES-256 (type 18) TGS replies.<br />
 `tgsrep.sh spnout.txt 18 > crackme.txt`<br />
 Output RC4 (type 23) TGS replies.<br />
 `tgsrep.sh spnout.txt 23 > crackme.txt`<br />
