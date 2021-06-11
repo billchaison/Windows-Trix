@@ -572,6 +572,9 @@ This example will filter the trace on IP address 10.2.5.92 and halt after 10MB i
 **Start the packet capture**<br />
 `netsh trace start capture=yes ipv4.address=10.2.5.92 filemode=single maxsize=10 overwrite=yes tracefile=c:\Windows\temp\tracefile.etl`
 
+**Manually stop if necessary**<br />
+`netsh trace stop`
+
 **Convert the etl file to cap format for wireshark**<br />
 Download Microsoft Network Monitor 3.4 from [HERE](https://www.microsoft.com/en-us/download/details.aspx?id=4865).<br />
 Open `tracefile.etl` with Network Monitor 3.4 and save as `tracefile.cap`.<br />
