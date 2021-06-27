@@ -1934,7 +1934,7 @@ def get_hash(password, length, princ):
 parser = argparse.ArgumentParser(description='Brute force Kerberos AES hashes against a wordlist.')
 parser.add_argument('hash', metavar='<hash>', type=str.lower, help="The hash to crack in hex.")
 parser.add_argument('type', metavar='<type>', type=str.lower, help="The hash type aes128 or aes256.")
-parser.add_argument('user', metavar='<type>', type=str.lower, help="The user's SAM account name.")
+parser.add_argument('user', metavar='<type>', type=str, help="The user's SAM account name (case sensitive).")
 parser.add_argument('domn', metavar='<type>', type=str.upper, help="The AD domain (realm).")
 parser.add_argument('dict', metavar='<dict>', type=str, help="The wordlist file.")
 args = parser.parse_args()
