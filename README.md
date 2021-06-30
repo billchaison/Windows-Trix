@@ -8,11 +8,11 @@ Add-Type -AssemblyName System.Windows.Forms
 
 if($([System.Windows.Forms.Clipboard]::ContainsImage())) {
    $cb = [System.Windows.Forms.Clipboard]::GetImage()
-   $file = 'c:\bill\clipboard.png'
+   $file = '\\10.1.2.3\upload\clipboard.png'
    $cb.Save($file, [System.Drawing.Imaging.ImageFormat]::Png)
 } elseif($([System.Windows.Forms.Clipboard]::ContainsText())) {
    $cb = [System.Windows.Forms.Clipboard]::GetText()
-   $file = 'c:\bill\clipboard.txt'
+   $file = '\\10.1.2.3\upload\clipboard.txt'
    $cb > $file
 } else {
    Write-Output "Nothing in clipboard to save."
