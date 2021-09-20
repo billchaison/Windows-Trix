@@ -2466,6 +2466,8 @@ int main(int argc, char* argv[])
 
 ![alt text](https://github.com/billchaison/Windows-Trix/blob/master/rvsh02.png)
 
+**Compiling a DLL**
+
 ```c
 // x86_64-w64-mingw32-gcc -m64 -shared -Wl,--kill-at rvshdll.c -o rvshdll.dll -lws2_32
 
