@@ -2529,3 +2529,269 @@ void CALLBACK Remote(HWND hwnd, HINSTANCE hinst, LPSTR lpszCmdLine, int nCmdShow
 ![alt text](https://github.com/billchaison/Windows-Trix/blob/master/rvsh03.png)
 
 ![alt text](https://github.com/billchaison/Windows-Trix/blob/master/rvsh04.png)
+
+## >> Add/Remove DNS records using dnsapi.dll in C#
+
+Example source `dnsrec.cs` for adding and deleting domain DNS records as the currently logged on user.
+
+**Compiling an EXE**
+
+```csharp
+// c:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe -out:dnsrec.exe dnsrec.cs
+
+using System;
+using System.Runtime.InteropServices;
+using System.Net;
+
+namespace DNSUtil
+{
+   class AddDelRecord
+   {
+      [DllImport("dnsapi.dll", EntryPoint = "DnsModifyRecordsInSet_A", CharSet = CharSet.Ansi, SetLastError = false, ExactSpelling = true)]
+      static extern bool DnsModifyRecordsInSet(IntPtr pAddRecords, IntPtr pDeleteRecords, int Options, IntPtr hContext, IntPtr pExtra, IntPtr pReserved);
+
+      [StructLayout(LayoutKind.Sequential)]
+      public struct DNS_RECORD_FLAGS
+      {
+         internal uint data;
+         public uint Section
+         {
+            get { return data & 0x3u; }
+            set { data = (data & ~0x3u) | (value & 0x3u); }
+         }
+         public uint Delete
+         {
+            get { return (data >> 2) & 0x1u; }
+            set { data = (data & ~(0x1u << 2)) | (value & 0x1u) << 2; }
+         }
+         public uint CharSet
+         {
+            get { return (data >> 3) & 0x3u; }
+            set { data = (data & ~(0x3u << 3)) | (value & 0x3u) << 3; }
+         }
+         public uint Unused
+         {
+            get { return (data >> 5) & 0x7u; }
+            set { data = (data & ~(0x7u << 5)) | (value & 0x7u) << 5; }
+         }
+         public uint Reserved
+         {
+            get { return (data >> 8) & 0xFFFFFFu; }
+            set { data = (data & ~(0xFFFFFFu << 8)) | (value & 0xFFFFFFu) << 8; }
+         }
+      }
+
+      [StructLayout(LayoutKind.Explicit)]
+      public struct FlagsUnion
+      {
+         [FieldOffset(0)]
+         public uint DW;
+         [FieldOffset(0)]
+         public DNS_RECORD_FLAGS S;
+      }
+
+      [StructLayout(LayoutKind.Sequential)]
+      public struct DNS_A_DATA
+      {
+         public uint IpAddress;
+         public System.Net.IPAddress IPAddressObject { get { return new IPAddress((long)IpAddress); } }
+      }
+
+      [StructLayout(LayoutKind.Sequential)]
+      public struct DNS_PTR_DATA
+      {
+         public IntPtr pNameHost;
+      }
+
+      [StructLayout(LayoutKind.Explicit)]
+      public struct DataUnion
+      {
+         [FieldOffset(0)]
+         public DNS_A_DATA A;
+         [FieldOffset(0)]
+         public DNS_PTR_DATA CNAME;
+      }
+
+      [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+      public struct DNS_RECORD
+      {
+          public IntPtr pNext;
+          public string pName;
+          public ushort wType;
+          public ushort wDataLength;
+          public FlagsUnion dwFlags;
+          public uint dwTtl;
+          public uint dwReserved;
+          public DataUnion Data;
+      }
+
+      private static void Usage()
+      {
+         Console.WriteLine("Adds or deletes a DNS record in the domain using current Windows credentials.");
+         Console.WriteLine("Records added will use the default domain TTL.\n");
+         Console.WriteLine("Usage (add A record):        dnsrec.exe add A site.com www 10.1.2.3");
+         Console.WriteLine("Usage (add CNAME record):    dnsrec.exe add CNAME site.com www web.anothersite.com\n");
+         Console.WriteLine("Usage (delete A record):     dnsrec.exe del A site.com www 10.1.2.3");
+         Console.WriteLine("Usage (delete CNAME record): dnsrec.exe del CNAME site.com www web.anothersite.com");
+      }
+      private static void AddRec(string RType, string RDomain, string RHost, string RTarget)
+      {
+         string domain;
+         DNS_RECORD rec;
+         uint ipv4;
+         IntPtr pRec;
+         bool r;
+         switch(RType)
+         {
+            case "A":
+               domain = RHost + "." + RDomain;
+               rec = new DNS_RECORD();
+               rec.pNext = IntPtr.Zero;
+               rec.pName = domain;
+               rec.wType = 1;
+               rec.wDataLength = 4;
+               rec.dwReserved = 0;
+               var addr = IPAddress.Parse(RTarget);
+               ipv4 = (uint)BitConverter.ToInt32((addr.GetAddressBytes()), 0);
+               rec.Data.A.IpAddress = ipv4;
+               pRec = Marshal.AllocHGlobal(Marshal.SizeOf(rec));
+               Marshal.StructureToPtr(rec, pRec, false);
+               r = DnsModifyRecordsInSet(pRec, IntPtr.Zero, 0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+               if(r)
+               {
+                  Console.WriteLine("Failed to add DNS 'A' record.");
+               }
+               else
+               {
+                  Console.WriteLine("DNS 'A' record added successfully.");
+               }
+               break;
+            case "CNAME":
+               domain = RHost + "." + RDomain;
+               rec = new DNS_RECORD();
+               rec.pNext = IntPtr.Zero;
+               rec.pName = domain;
+               rec.wType = 5;
+               rec.wDataLength = (ushort)System.Runtime.InteropServices.Marshal.SizeOf(typeof(DNS_PTR_DATA));
+               rec.dwReserved = 0;
+               rec.Data.CNAME.pNameHost = Marshal.StringToHGlobalAnsi(RTarget);
+               pRec = Marshal.AllocHGlobal(Marshal.SizeOf(rec));
+               Marshal.StructureToPtr(rec, pRec, false);
+               r = DnsModifyRecordsInSet(pRec, IntPtr.Zero, 0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+               if(r)
+               {
+                  Console.WriteLine("Failed to add DNS 'CNAME' record.");
+               }
+               else
+               {
+                  Console.WriteLine("DNS 'CNAME' record added successfully.");
+               }
+               break;
+            default:
+               Usage();
+               break;
+         }
+      }
+      private static void DelRec(string RType, string RDomain, string RHost, string RTarget)
+      {
+         string domain;
+         DNS_RECORD rec;
+         uint ipv4;
+         IntPtr pRec;
+         bool r;
+         switch(RType)
+         {
+            case "A":
+               domain = RHost + "." + RDomain;
+               rec = new DNS_RECORD();
+               rec.pNext = IntPtr.Zero;
+               rec.pName = domain;
+               rec.wType = 1;
+               rec.wDataLength = 4;
+               rec.dwReserved = 0;
+               var addr = IPAddress.Parse(RTarget);
+               ipv4 = (uint)BitConverter.ToInt32((addr.GetAddressBytes()), 0);
+               rec.Data.A.IpAddress = ipv4;
+               pRec = Marshal.AllocHGlobal(Marshal.SizeOf(rec));
+               Marshal.StructureToPtr(rec, pRec, false);
+               r = DnsModifyRecordsInSet(IntPtr.Zero, pRec, 0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+               if(r)
+               {
+                  Console.WriteLine("Failed to delete DNS 'A' record.");
+               }
+               else
+               {
+                  Console.WriteLine("DNS 'A' record deleted successfully.");
+               }
+               break;
+            case "CNAME":
+               domain = RHost + "." + RDomain;
+               rec = new DNS_RECORD();
+               rec.pNext = IntPtr.Zero;
+               rec.pName = domain;
+               rec.wType = 5;
+               rec.wDataLength = (ushort)System.Runtime.InteropServices.Marshal.SizeOf(typeof(DNS_PTR_DATA));
+               rec.dwReserved = 0;
+               rec.Data.CNAME.pNameHost = Marshal.StringToHGlobalAnsi(RTarget);
+               pRec = Marshal.AllocHGlobal(Marshal.SizeOf(rec));
+               Marshal.StructureToPtr(rec, pRec, false);
+               r = DnsModifyRecordsInSet(IntPtr.Zero, pRec, 0, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero);
+               if(r)
+               {
+                  Console.WriteLine("Failed to delete DNS 'CNAME' record.");
+               }
+               else
+               {
+                  Console.WriteLine("DNS 'CNAME' record deleted successfully.");
+               }
+               break;
+            default:
+               Usage();
+               break;
+         }
+      }
+      private static void Main(string[] args)
+      {
+         try
+         {
+            if(args.Length < 1)
+            {
+               Usage();
+            }
+            else
+            {
+               switch(args[0])
+               {
+                  case "add":
+                     if(args.Length == 5)
+                     {
+                        AddRec(args[1], args[2], args[3], args[4]);
+                     }
+                     else
+                     {
+                        Usage();
+                     }
+                     break;
+                  case "del":
+                     if(args.Length == 5)
+                     {
+                        DelRec(args[1], args[2], args[3], args[4]);
+                     }
+                     else
+                     {
+                        Usage();
+                     }
+                     break;
+                  default:
+                     Usage();
+                     break;
+               }
+            }
+         }
+         catch(Exception)
+         {
+         }
+      }
+   }
+}
+```
