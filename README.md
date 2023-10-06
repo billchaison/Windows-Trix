@@ -2537,8 +2537,6 @@ Example source `dnsrec.cs` for adding and deleting domain DNS records as the cur
 **Compiling an EXE**
 
 ```csharp
-// c:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe -out:dnsrec.exe dnsrec.cs
-
 using System;
 using System.Runtime.InteropServices;
 using System.Net;
@@ -2628,13 +2626,13 @@ namespace DNSUtil
       private static void Usage()
       {
          Console.WriteLine("Adds or deletes a DNS record in the domain using current Windows credentials.");
-         Console.WriteLine("Records added will use the default domain TTL.\n");
-         Console.WriteLine("Usage (add A record):        dnsrec.exe add A site.com www 10.1.2.3");
+         Console.WriteLine("<add|del> <A|CNAME> <domain> <record> <data> <TTL>\n");
+         Console.WriteLine("Usage (add A record):        dnsrec.exe add A site.com www 10.1.2.3 3600");
          Console.WriteLine("Usage (add CNAME record):    dnsrec.exe add CNAME site.com www web.anothersite.com\n");
-         Console.WriteLine("Usage (delete A record):     dnsrec.exe del A site.com www 10.1.2.3");
+         Console.WriteLine("Usage (delete A record):     dnsrec.exe del A site.com www 10.1.2.3 3600");
          Console.WriteLine("Usage (delete CNAME record): dnsrec.exe del CNAME site.com www web.anothersite.com");
       }
-      private static void AddRec(string RType, string RDomain, string RHost, string RTarget)
+      private static void AddRec(string RType, string RDomain, string RHost, string RTarget, string RTTL)
       {
          string domain;
          DNS_RECORD rec;
@@ -2650,6 +2648,7 @@ namespace DNSUtil
                rec.pName = domain;
                rec.wType = 1;
                rec.wDataLength = 4;
+               rec.dwTtl = (uint)Convert.ToInt32(RTTL);
                rec.dwReserved = 0;
                var addr = IPAddress.Parse(RTarget);
                ipv4 = (uint)BitConverter.ToInt32((addr.GetAddressBytes()), 0);
@@ -2673,6 +2672,7 @@ namespace DNSUtil
                rec.pName = domain;
                rec.wType = 5;
                rec.wDataLength = (ushort)System.Runtime.InteropServices.Marshal.SizeOf(typeof(DNS_PTR_DATA));
+               rec.dwTtl = (uint)Convert.ToInt32(RTTL);
                rec.dwReserved = 0;
                rec.Data.CNAME.pNameHost = Marshal.StringToHGlobalAnsi(RTarget);
                pRec = Marshal.AllocHGlobal(Marshal.SizeOf(rec));
@@ -2763,9 +2763,9 @@ namespace DNSUtil
                switch(args[0])
                {
                   case "add":
-                     if(args.Length == 5)
+                     if(args.Length == 6)
                      {
-                        AddRec(args[1], args[2], args[3], args[4]);
+                        AddRec(args[1], args[2], args[3], args[4], args[5]);
                      }
                      else
                      {
